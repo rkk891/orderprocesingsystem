@@ -1,0 +1,11 @@
+# Graphify's own generated artifacts and local metadata.
+graphify-out/**
+.git/**
+.DS_Store
+
+# Generated build and scaffold support files do not describe product behavior.
+**/target/**
+**/src/test/**
+backend/ordersystem/HELP.md
+backend/ordersystem/mvnw
+backend/ordersystem/mvnw.cmd
