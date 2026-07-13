@@ -45,8 +45,8 @@ passed on Java 21.
 - Rename sources/tests once to `com.rkk.orderprocessing` and
   `OrderProcessingApplication`.
 - Extend `pom.xml` with Spring MVC, validation, Data JPA, PostgreSQL JDBC,
-  Flyway PostgreSQL, Actuator, Boot 4's MVC/JPA test starters, Testcontainers,
-  Failsafe, and JaCoCo using Spring dependency management.
+  Flyway PostgreSQL, Actuator, Testcontainers, Failsafe, and JaCoCo using Spring
+  dependency management; add Boot test-slice starters only if a slice is used.
 - Add externalized `application.yml` plus `local`, `test`, and `prod` profiles;
   set `ddl-auto=validate`, disable Open EntityManager in View, and commit no URLs
   or credentials.

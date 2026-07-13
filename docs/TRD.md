@@ -66,10 +66,11 @@ The planned Maven set is `spring-boot-starter-webmvc`,
 `spring-boot-starter-validation`, `spring-boot-starter-data-jpa`,
 `spring-boot-starter-flyway`, Flyway's PostgreSQL database module, the PostgreSQL
 JDBC driver at runtime, and `spring-boot-starter-actuator`; retain
-`spring-boot-starter-test`, add Boot 4's `spring-boot-starter-webmvc-test` and
-`spring-boot-starter-data-jpa-test`, and add the Testcontainers PostgreSQL module
-in test scope. Confirm the resolved dependency tree before implementation and
-add no overlapping web or database client stack.
+`spring-boot-starter-test`, `spring-boot-testcontainers`, and the Testcontainers
+PostgreSQL module in test scope. Add a technology-specific Boot test starter only
+when a test actually uses that slice; the current standalone MockMvc and full
+PostgreSQL contexts do not. Confirm the resolved dependency tree and add no
+overlapping web or database client stack.
 
 Do not add a runtime OpenAPI generator in the initial scaffold. The indexed
 [API Contract](API_CONTRACT.md) is canonical until Spring Boot 4.1/Jackson 3

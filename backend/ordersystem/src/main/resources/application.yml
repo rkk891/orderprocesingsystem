@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: order-processing-system
+  flyway:
+    enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+orders:
+  scheduler:
+    enabled: ${ORDERS_SCHEDULER_ENABLED:true}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
