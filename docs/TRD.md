@@ -66,9 +66,10 @@ The planned Maven set is `spring-boot-starter-webmvc`,
 `spring-boot-starter-validation`, `spring-boot-starter-data-jpa`,
 `spring-boot-starter-flyway`, Flyway's PostgreSQL database module, the PostgreSQL
 JDBC driver at runtime, and `spring-boot-starter-actuator`; retain
-`spring-boot-starter-test` and add the Testcontainers PostgreSQL module in test
-scope. Confirm the resolved dependency tree before implementation and add no
-overlapping web or database client stack.
+`spring-boot-starter-test`, add Boot 4's `spring-boot-starter-webmvc-test` and
+`spring-boot-starter-data-jpa-test`, and add the Testcontainers PostgreSQL module
+in test scope. Confirm the resolved dependency tree before implementation and
+add no overlapping web or database client stack.
 
 Do not add a runtime OpenAPI generator in the initial scaffold. The indexed
 [API Contract](API_CONTRACT.md) is canonical until Spring Boot 4.1/Jackson 3
@@ -158,6 +159,8 @@ Auth, REST/GraphQL Data API, Realtime, Storage, or Edge Functions.
   `PENDING` row to `PROCESSING` and updates its UTC modification timestamp. A
   concurrent cancel or transition wins according to PostgreSQL row locking; the
   loser no longer matches its status precondition. No cancelled row is revived.
+  Each statement uses `GREATEST(updated_at, :clockInstant)` so a backward clock
+  cannot invalidate an otherwise legal mutation or an entire bulk tick.
 - Database constraints enforce allowed status values, positive quantities,
   non-blank products, uniqueness of `(order_id, product_id)`, and foreign-key
   integrity. The application enforces at least one item before the atomic create;

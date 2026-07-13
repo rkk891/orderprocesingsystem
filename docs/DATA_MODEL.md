@@ -66,7 +66,7 @@ Allowed persisted statuses are `PENDING`, `PROCESSING`, `SHIPPED`, `DELIVERED`, 
 | `fk_order_items_order` | `order_id` references `orders(id)` | Aggregate integrity. |
 | `uq_order_items_product` | unique `(order_id, product_id)` | Duplicate-product defense in depth. |
 | `uq_order_items_position` | unique `(order_id, position)` | Stable response item ordering and 100-item cap. |
-| `ck_order_items_product` | `char_length(product_id)` 1–100 and `btrim(product_id)` nonempty | Reject out-of-range or whitespace-only identifiers using PostgreSQL character semantics. |
+| `ck_order_items_product` | `char_length(product_id)` 1–100, `btrim(product_id)` nonempty, and no U+0000 can be represented by PostgreSQL text | Reject invalid identifiers at the final storage boundary; Java additionally owns its broader Unicode blank rule. |
 | `ck_order_items_quantity` | quantity between 1 and 999 | Quantity defense in depth. |
 | `ck_order_items_position` | position between 0 and 99 | Bound aggregate size. |
 
@@ -86,6 +86,6 @@ No separate `status` index is planned: the filtered-list composite index begins 
 
 ## Atomic mutation model
 
-Manual transitions use statements shaped as `UPDATE orders ... WHERE id = ? AND status = ?`; cancellation requires `status = 'PENDING'`. The scheduled handler performs one set-based `UPDATE` with `WHERE status = 'PENDING'`. Every mutation updates `updated_at` in the same statement.
+Manual transitions use statements shaped as `UPDATE orders SET ..., updated_at = GREATEST(updated_at, ?) WHERE id = ? AND status = ?`; cancellation requires `status = 'PENDING'`. The scheduled handler performs one set-based `UPDATE` with `WHERE status = 'PENDING'`. The monotonic expression prevents backward application-clock movement from violating the timestamp constraint.
 
 No version column or database trigger is needed: all mutable state is the single status field, and compare-and-set predicates prevent lost updates. PostgreSQL Read Committed row locking and predicate re-evaluation make competing cancellation, transition, and scheduler operations safe. Lifecycle rules and the exact SQL predicates are specified in [Architecture](ARCHITECTURE.md); database race cases are specified in [Test strategy](TEST_STRATEGY.md).

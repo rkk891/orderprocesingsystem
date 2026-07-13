@@ -1,8 +1,8 @@
 # Project Handoff
 
 **Updated:** 2026-07-13  
-**Phase:** Corrected documentation baseline awaiting user approval  
-**Implementation status:** Order-processing features not started
+**Phase:** Implementation approved; foundation batch in progress
+**Implementation status:** Approved on 2026-07-13; no order feature is complete yet
 
 ## Verified Repository State
 
@@ -45,9 +45,10 @@
 
 ## Current Queue
 
-1. User reviews and explicitly approves the corrected PRD, TRD, architecture,
-   LLD, data model, API contract, test matrix, and implementation plan.
-2. Only after that approval, begin Phase 1 of `docs/IMPLEMENTATION_PLAN.md`.
+1. Establish the Java 21/PostgreSQL/Flyway/Testcontainers foundation as one
+   green batch rather than leaving JPA configured without a schema.
+2. Deliver the domain, persistence, HTTP, scheduler, and verification slices
+   through the implementation/review/test/commit loop in the implementation plan.
 
 ## Known Environment Issues
 
@@ -76,3 +77,6 @@
 - Re-ran `./mvnw test` on 2026-07-13 after the docs-only correction; the one
   generated context test still passes. This remains scaffold evidence only.
 - No scaffold file or application code was changed during this documentation phase.
+- The user explicitly approved implementation on 2026-07-13 and requested
+  batched subagent review for hallucinations, coding standards, and production
+  readiness before every implementation commit.

@@ -94,6 +94,26 @@ truth. The implementation status remains **not started**. The user must approve
 the corrected baseline before Phase 1 begins; future code and database claims
 require the automated and manual evidence in the test strategy.
 
+## 2026-07-13 — Implementation approval and adversarial batch design
+
+- Goal and scope: begin the complete implementation from the approved docs and
+  keep each commit meaningful and green.
+- AI/tool assistance: three read-only subagents independently mapped the
+  API/domain contract, PostgreSQL/testing requirements, and production-readiness
+  risks; the main agent owns implementation and verification.
+- Issue found: the saved Graphify graph only described the generated context
+  test, and the plan could have committed JPA validation before its migration.
+- Correction: treated the graph as stale, combined database configuration with
+  its migration/test harness, and established an implement/test/adversarial
+  review/improve/commit loop for every batch.
+- Additional corrections: kept status strings across the API/application
+  boundary, rejected U+0000 product IDs, made mutation timestamps monotonic, and
+  closed 405/406/415 error behavior before controller code.
+- Automated verification: `./mvnw test` passed the generated baseline test on
+  Java 21 before commit `a00f286`; feature verification remains pending.
+- Sensitive-data check: passed; graph artifacts, `.env` files, and OS metadata
+  are ignored.
+
 ## Reusable Entry Template
 
 Copy this section for each material AI-assisted change. Summarize techniques;

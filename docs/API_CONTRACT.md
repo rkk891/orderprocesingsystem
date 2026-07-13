@@ -35,7 +35,7 @@ The background processor has no public endpoint.
 
 | Field | Type | Required | Validation |
 | --- | --- | ---: | --- |
-| `productId` | string | Yes | 1–100 Unicode code points; not blank; exact/case-sensitive uniqueness within request |
+| `productId` | string | Yes | 1–100 Unicode code points; not blank; must not contain U+0000; exact/case-sensitive uniqueness within request |
 | `quantity` | integer | Yes | 1–999 |
 
 ### Order detail
@@ -123,6 +123,11 @@ The body contains exactly one known `status`. Only targets `PROCESSING`, `SHIPPE
 - 404: valid ID absent.
 - 409: skip, reversal, self-transition, generic `CANCELLED`, terminal-state update, or lost concurrent race.
 
+For the known targets `PENDING` and `CANCELLED`, which are never valid manual
+targets, target validation takes precedence and returns 409 without using order
+existence. Other known targets reach the conditional update, where a missing ID
+returns 404.
+
 ## 8. Cancel Order
 
 `POST /api/v1/orders/{orderId}/cancel`
@@ -175,6 +180,9 @@ Every problem response contains all eight top-level members shown above:
 | `ORDER_NOT_FOUND` | `urn:problem:order-not-found` | `Order not found` | 404 | `The requested order does not exist.` |
 | `ORDER_STATE_CONFLICT` | `urn:problem:order-state-conflict` | `Order state conflict` | 409 | `The order cannot make the requested transition.` |
 | `INTERNAL_ERROR` | `urn:problem:internal-error` | `Internal error` | 500 | `An unexpected error occurred.` |
+| `METHOD_NOT_ALLOWED` | `urn:problem:method-not-allowed` | `Method not allowed` | 405 | `The HTTP method is not supported for this resource.` |
+| `NOT_ACCEPTABLE` | `urn:problem:not-acceptable` | `Not acceptable` | 406 | `The requested response representation is not available.` |
+| `UNSUPPORTED_MEDIA_TYPE` | `urn:problem:unsupported-media-type` | `Unsupported media type` | 415 | `The request media type is not supported.` |
 
 A violation contains exactly `field` and `message`, both strings. Body fields use
 JSON-style paths such as `items[0].quantity`; query and path parameters use their
@@ -192,6 +200,10 @@ secrets never appear.
 - Repeating a successful status update or cancel returns 409 because the precondition no longer holds.
 - The internal pending processor is idempotent: an immediate rerun updates zero rows.
 - Backward-incompatible HTTP changes require a new API version and coordinated PRD/API/test updates.
+
+The service generates one opaque trace ID for every request, returns it as
+`X-Trace-Id`, and uses the same value in Problem Details and safe request-outcome
+logs. Client-provided trace IDs are not trusted as the server identifier.
 
 Create idempotency keys are deliberately deferred, not overlooked. Mature
 commerce APIs commonly persist a client key with the first mutation result so a

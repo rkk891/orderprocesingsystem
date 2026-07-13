@@ -72,6 +72,10 @@ transactions together, then assert committed database state and affected-row
 counts. Repeat race scenarios enough to detect non-determinism while keeping the
 assertion independent of which valid contender wins.
 
+Validation coverage includes PostgreSQL-incompatible U+0000 product IDs, known
+but never-manual status targets on missing IDs, 405/406/415 framework failures,
+and backward-clock mutations proving `updatedAt` remains monotonic.
+
 `ArchitectureRulesTest` is a small JDK/JUnit source check run by normal
 `./mvnw test`. A `Files.walk` scan rejects
 `order.api -> order.persistence`, any `order.job` dependency except

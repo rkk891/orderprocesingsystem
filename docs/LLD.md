@@ -29,7 +29,8 @@ backend/ordersystem/src/main/java/com/rkk/orderprocessing/
 │   ├── ClockConfiguration.java
 │   └── SchedulingConfiguration.java
 ├── shared/api/
-│   └── ApiExceptionHandler.java
+│   ├── ApiExceptionHandler.java
+│   └── RequestTraceFilter.java
 └── order/
     ├── api/
     │   ├── OrderController.java
@@ -97,8 +98,8 @@ The application surface is concrete and small; no one-implementation service int
 | --- | --- | --- |
 | `OrderService.create(CreateOrderCommand)` | Return `OrderDetailsResult`; reject invalid aggregate input | Read-write |
 | `OrderService.get(UUID)` | Return detached detail or throw `OrderNotFoundException` | Read-only |
-| `OrderService.list(OrderStatus?, int page, int size)` | Return `OrderPageResult`; choose filtered or unfiltered summary query | Read-only |
-| `OrderService.advanceStatus(UUID, OrderStatus)` | Apply the one legal predecessor rule; return detail, 404, or 409 | Read-write |
+| `OrderService.list(String?, int page, int size)` | Parse an optional exact status and return `OrderPageResult`; choose filtered or unfiltered summary query | Read-only |
+| `OrderService.advanceStatus(UUID, String)` | Parse the target, apply the one legal predecessor rule, and return detail, 404, or 409 | Read-write |
 | `OrderService.cancel(UUID)` | Compare-and-set `PENDING -> CANCELLED`; return detail, 404, or 409 | Read-write |
 | `PendingOrderProcessor.processPending()` | Bulk-update pending rows using one timestamp; return affected count | Read-write |
 
@@ -114,7 +115,8 @@ Spring transaction proxies commit after a successful public service/processor me
   Unicode code points, and unique within an order. Java validates with
   `String.codePointCount(...)`, not UTF-16 `String.length()`/`@Size`; PostgreSQL
   uses `char_length`. Combining sequences are not normalized, and their code
-  points count separately.
+  points count separately. U+0000 is rejected because PostgreSQL text values
+  cannot store it.
 - `quantity` is an integer from 1 through 999.
 - V1 stores no customer, price, currency, total, inventory, payment, address, or status history.
 - Cancellation changes status; it never deletes data.
@@ -132,6 +134,11 @@ Spring transaction proxies commit after a successful public service/processor me
 | `CANCELLED` | 409 | 409 | 409 | 409 | 409 |
 
 The cancel endpoint returns 200 only from `PENDING`; every other existing state returns 409. `CANCELLED` through the generic endpoint is a business conflict; an unknown target string returns 400 before service logic. `OrderStatus.requiredPredecessorForManualTarget()` (or an equivalently explicit method) is the sole table-driven rule used by manual advancement.
+
+For a valid UUID with a known but never-manual target (`PENDING` or `CANCELLED`),
+target validation wins and returns 409 even when the order does not exist. A
+missing order is 404 only after a target with a legal predecessor reaches the
+conditional mutation.
 
 ## 8. Use-Case Flows and Transactions
 
@@ -154,7 +161,7 @@ Any failure rolls back parent and items. Create retries are not deduplicated in 
 ### Manual transition
 
 1. `OrderStatus` maps the requested target to its one legal predecessor.
-2. The shared transition helper asks the repository for one conditional mutation by `id` and predecessor status, setting target and `updated_at`.
+2. The shared transition helper asks the repository for one conditional mutation by `id` and predecessor status, setting target and `updated_at = GREATEST(updated_at, :clockInstant)` so a backward clock cannot violate timestamp monotonicity.
 3. Affected count 1 means success; the helper fetches and maps updated detail in the same transaction.
 4. Affected count 0 triggers an existence check: absent is 404, present is 409.
 
@@ -166,7 +173,7 @@ The same algorithm uses the fixed predicate `id = :id AND status = PENDING` and 
 
 1. Scheduler fires at `0 */5 * * * *` in UTC.
 2. Processor captures one `Clock.instant()`.
-3. One transaction updates every row still `PENDING` to `PROCESSING` and sets `updated_at`.
+3. One transaction updates every row still `PENDING` to `PROCESSING` and sets each `updated_at` to the greater of its current value and the captured clock instant.
 4. Processor returns and logs affected count and duration. Immediate rerun affects zero.
 
 This is a schedule tick, not an “order is five minutes old” threshold.

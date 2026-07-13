@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **Docs-first plan**; all implementation phases are not started |
+| Status | **Approved for implementation** on 2026-07-13; foundation in progress |
 | Working root | `backend/ordersystem/` |
 | Target package | `com.rkk.orderprocessing` |
 | Sources of truth | [Documentation Index](INDEX.md), [PRD](PRD.md), [TRD](TRD.md), [Architecture](ARCHITECTURE.md), [LLD](LLD.md), [API Contract](API_CONTRACT.md), [Data Model](DATA_MODEL.md) |
@@ -25,7 +25,7 @@ state; `./mvnw verify` and a local Supabase smoke test pass.
 
 ## 2. Delivery Phases
 
-### Phase 0 — Approve the documentation baseline (ready for user approval; docs only)
+### Phase 0 — Approve the documentation baseline (complete)
 
 Review `README.md`, `docs/INDEX.md`, PRD, TRD, architecture, LLD, API contract,
 data model, test strategy, ADRs, and AI record as one consistent design. Resolve
@@ -36,13 +36,17 @@ gaps before code.
 **Risk:** contradictory documents become competing specifications; fix the
 canonical owner rather than adding an exception elsewhere.
 
+**Evidence:** the user explicitly approved implementation on 2026-07-13. The
+baseline was captured in commit `a00f286` after the generated scaffold test
+passed on Java 21.
+
 ### Phase 1 — Normalize and complete the scaffold (not started)
 
 - Rename sources/tests once to `com.rkk.orderprocessing` and
   `OrderProcessingApplication`.
 - Extend `pom.xml` with Spring MVC, validation, Data JPA, PostgreSQL JDBC,
-  Flyway PostgreSQL, Actuator, Testcontainers, Failsafe, and JaCoCo using Spring
-  dependency management.
+  Flyway PostgreSQL, Actuator, Boot 4's MVC/JPA test starters, Testcontainers,
+  Failsafe, and JaCoCo using Spring dependency management.
 - Add externalized `application.yml` plus `local`, `test`, and `prod` profiles;
   set `ddl-auto=validate`, disable Open EntityManager in View, and commit no URLs
   or credentials.
@@ -52,8 +56,12 @@ canonical owner rather than adding an exception elsewhere.
   boundaries defined in the test strategy; verify singleton statelessness in
   focused tests and review rather than reflection infrastructure.
 
-**Check:** Java 21 is active; wrapper compile and context test pass; package scan
-finds no `com.example`; startup without secrets fails clearly, not insecurely.
+Phase 1 and the Phase 2 migration/test harness are delivered as one foundation
+batch so JPA validation is never committed without the schema it validates.
+
+**Check:** Java 21 is active; wrapper compile and container-backed context test
+pass; package scan finds no `com.example`; startup without secrets fails clearly,
+not insecurely.
 **Risks:** Boot 4.1 compatibility with the planned dependency set and the package
 move must still be proven before feature work.
 
@@ -128,6 +136,11 @@ locks, alternate pagination schemes, auth, pricing, or idempotency keys until re
 them. Stop and update the canonical docs if an API field, transition, transaction
 boundary, schema rule, connection mode, or concurrency strategy must change.
 The generated scaffold does **not** count as a completed implementation phase.
+
+Each batch follows the same gate: implement, run targeted tests, ask a reviewer
+subagent to challenge assumptions and check hallucinated APIs, standards,
+security/concurrency, and production readiness, correct valid findings, rerun
+tests, and only then commit.
 
 ## 4. Requirement-to-Delivery Traceability
 
