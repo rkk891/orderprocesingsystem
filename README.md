@@ -4,10 +4,6 @@ Java backend that creates multi-item orders, retrieves and lists them, advances
 their status, cancels pending orders, and promotes pending orders every five
 minutes.
 
-> **Phase:** Assessment implementation and Phase 5 verification are complete.
-> Public deployment still requires the security/role hardening documented in the
-> TRD because authentication is intentionally outside V1.
-
 ## Chosen Stack
 
 | Area | Decision |
@@ -20,13 +16,12 @@ minutes.
 | Scheduling | Spring `@Scheduled` with a UTC five-minute cron |
 | Testing | JUnit 5, MockMvc, Testcontainers PostgreSQL |
 
-The implementation is a package-by-feature modular monolith. Microservices,
-messaging, CQRS, payment, inventory, catalog pricing, authentication, and
-shipping integrations are intentionally outside the assignment scope.
+The service is organized as a package-by-feature modular monolith focused on the
+core order lifecycle.
 
-## Assessment Focus
+## Design
 
-The design demonstrates a small set of patterns with real responsibilities:
+Core design choices include:
 
 - an order aggregate with named creation methods;
 - an enum state machine for legal transitions;
@@ -36,28 +31,25 @@ The design demonstrates a small set of patterns with real responsibilities:
 - a thin scheduler adapter over an idempotent, set-based processor;
 - expected-status conditional writes and real-PostgreSQL race tests.
 
-Strategy hierarchies, GoF State classes, events, queues, saga/outbox,
-microservices, distributed locks, and create-idempotency storage are deferred
-until a requirement gives them work to do. Detailed rationale and revisit
-triggers remain in [docs/LLD.md](docs/LLD.md) and
+Detailed design and concurrency rationale are documented in
+[docs/LLD.md](docs/LLD.md) and
 [ADR 0002](docs/decisions/0002-supabase-and-concurrency.md).
 
-## Start Here
+## Documentation
 
-1. [RESUME.md](RESUME.md) — current phase, verified state, and next action.
-2. [docs/INDEX.md](docs/INDEX.md) — canonical documentation map and reading triggers.
-3. [docs/PRD.md](docs/PRD.md) — product requirements and acceptance criteria.
-4. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — system boundaries and component flows.
-5. [docs/LLD.md](docs/LLD.md) — packages, classes, state machine, and transactions.
-6. [docs/API_CONTRACT.md](docs/API_CONTRACT.md) — HTTP contract.
+1. [docs/API_CONTRACT.md](docs/API_CONTRACT.md) — HTTP endpoints, requests, and responses.
+2. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — system boundaries and component flows.
+3. [docs/LLD.md](docs/LLD.md) — packages, classes, state machine, and transactions.
+4. [docs/DATA_MODEL.md](docs/DATA_MODEL.md) — PostgreSQL schema and constraints.
+5. [docs/INDEX.md](docs/INDEX.md) — complete documentation map.
 
 ## Repository Layout
 
 ```text
 backend/ordersystem/   Spring Boot order-processing service
 docs/                  Source-of-truth product and engineering documents
-AGENTS.md              Agent execution contract
-RESUME.md              Volatile project handoff and queue
+postman/               Newman running-service smoke collection
+supabase/               Local Supabase configuration
 ```
 
 The service pins Java 21 and Spring Boot 4.1.0 and is rooted at
@@ -72,20 +64,12 @@ From `backend/ordersystem/`, the complete verification command is:
 ./mvnw clean verify
 ```
 
-On Java 21.0.11 this passed 71 fast/unit/MockMvc tests and 26 Testcontainers
-PostgreSQL integration tests. It proved Flyway on an empty PostgreSQL 17.6
-database, JPA validation, aggregate rollback, database-backed readiness,
-repository constraints/queries, pending-processor visibility, and the required
-races. JaCoCo's 80% bundle line/branch and 90% domain/application branch gates
-passed.
+The suite covers domain and API behavior, Flyway migrations, JPA validation,
+transaction rollback, database-backed readiness, repository constraints,
+processor visibility, and scheduler/cancellation races against PostgreSQL.
+JaCoCo coverage gates run as part of `verify`.
 
-Local Supabase startup and Flyway also succeeded, Newman completed 12 requests
-with 12 passing assertions, and the opt-in scheduler-handler smoke passed one
-test while promoting exactly its one pending row. Never commit database
-credentials; use environment variables and the connection guidance in
-[docs/TRD.md](docs/TRD.md).
-
-### Reproduce the local smoke
+### Local development and smoke test
 
 Start the repository-isolated Supabase database from the repository root:
 
@@ -129,8 +113,5 @@ The handler intentionally promotes every `PENDING` row, matching the production
 contract, and cleans up only the row it creates. Use an otherwise idle local
 project for this smoke.
 
-## Documentation Contract
-
-Each decision has one canonical document listed in the index. Update that owner
-and its affected tests/contracts in the same change. Record material AI
-assistance, mistakes, and corrections in [docs/AI_USAGE.md](docs/AI_USAGE.md).
+Never commit database credentials. Use environment variables and the connection
+guidance in [docs/TRD.md](docs/TRD.md).
