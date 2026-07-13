@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **Planned**; only the generated context-load test exists |
+| Status | **Complete**; clean build and local running-service smoke are green |
 | Runtime under test | Java 21, Spring Boot 4.1.0, PostgreSQL |
 | Canonical scope | [PRD](PRD.md), [TRD](TRD.md), [API Contract](API_CONTRACT.md), [LLD](LLD.md), [Data Model](DATA_MODEL.md) |
 
@@ -23,7 +23,7 @@ than shared mutable database state.
 
 | Requirement | Domain/service proof | HTTP/operational proof | PostgreSQL/concurrency proof | Phase |
 | --- | --- | --- | --- | ---: |
-| PRD-FR-001 create | Named creation methods; exact duplicate and Unicode code-point validation; atomic rollback | Multi-item `201`; every invalid/server-owned/unknown member case is `400` | Constraints, cascade, uniqueness; simultaneous creates remain independent | 2–3 |
+| PRD-FR-001 create | Named creation methods; exact duplicate and Unicode code-point validation; atomic rollback | Multi-item `201`; every invalid/server-owned/unknown member case is `400` | Constraints, cascade, uniqueness, and fresh-transaction aggregate rollback | 2–3 |
 | PRD-FR-002 retrieve | Complete detached aggregate; existing versus missing UUID | Detail `200`; malformed UUID `400`; absent UUID `404` | One aggregate fetch; no N+1 or lazy-session dependency | 3 |
 | PRD-FR-003 advance | Complete transition matrix; shared stale-versus-missing classification | Legal `200`; every illegal/stale case `409`; stable Problem Details | Expected-status mutation; two contenders yield one update and one conflict | 2–3 |
 | PRD-FR-004 list | Exact status and page-bound orchestration | Defaults/max/metadata; repeated documented parameter is `400`; undocumented `sort` is ignored | Fixed sort, filtered/unfiltered indexes, stable-dataset traversal without gaps/duplicates | 2–3 |
@@ -39,7 +39,7 @@ than shared mutable database state.
 | PRD-NFR-007 testability | Pure-Java domain suite and fixed/mutable test clock | MockMvc contract suite | Testcontainers PostgreSQL; no H2 or sleeps | 1–4 |
 | PRD-NFR-008 maintainability | `ArchitectureRulesTest`; focused class responsibilities | DTO/application/persistence boundary checks | Dependency and schema-drift review | Every implementation phase |
 
-## 3. Planned Test Surfaces
+## 3. Implemented Test Surfaces
 
 - `order/domain/OrderStatusTest.java`: the complete pure-Java transition matrix.
 - `order/persistence/OrderEntityTest.java`: fast tests for named creation methods,
@@ -47,21 +47,32 @@ than shared mutable database state.
 - `order/application/OrderServiceTest.java`: commands, item validation, query
   orchestration, detached results, and shared 404/409 classification with a
   mocked repository/clock.
-- `order/api/OrderApiMapperTest.java`: request/command and result/response mapping;
-  no mapper method accepts a persistence type.
-- `order/api/OrderControllerTest.java`: `@WebMvcTest` request/response contract
-  and global error mapping.
+- `order/application/OrderServiceIT.java`: real service-transaction rollback
+  after a PostgreSQL child constraint failure, verified from a fresh transaction.
+- `order/api/OrderControllerMockMvcTest.java`: `@WebMvcTest` request/response,
+  mapping, strict Jackson behavior, query semantics, tracing, and global errors.
 - `order/persistence/OrderRepositoryIT.java`: mappings, constraints, ordering,
   conditional mutations, and Flyway on an empty PostgreSQL container.
-- `order/application/PendingOrderProcessorIT.java`: processor behavior and affected counts.
-- `order/application/OrderConcurrencyIT.java`: cancel-versus-job, update-versus-update,
+- `order/application/PendingOrderProcessorTest.java`: processor delegation, one
+  clock instant, and affected count.
+- `order/application/PendingOrderProcessorIT.java`: pending-only bulk behavior,
+  exact counts, rerun idempotence, terminal-state preservation, and backward-clock
+  monotonicity against PostgreSQL.
+- `order/application/PendingOrderProcessorSnapshotIT.java`: deterministic
+  PostgreSQL statement-snapshot proof using distinct transactions and
+  `pg_blocking_pids`, without sleeps.
+- `order/persistence/OrderConcurrencyIT.java`: cancel-versus-job, update-versus-update,
   and overlapping-job races using separate transactions and barriers—not sleeps.
 - `order/job/PendingOrderSchedulerTest.java`: one focused cron/UTC wiring test;
-  it verifies scheduler-to-processor delegation and never waits five real minutes.
+  it verifies scheduler-to-processor delegation, success/failure metrics, and
+  never waits five real minutes.
+- `OrderProcessingApplicationIT.java`: clean Spring context, Flyway migration,
+  and JPA validation against Testcontainers PostgreSQL.
+- `DatabaseReadinessIT.java`: readiness is `UP` with PostgreSQL and becomes a
+  sanitized `503 DOWN` response when the database stops.
 
 Package paths are rooted at
-`backend/ordersystem/src/test/java/com/rkk/orderprocessing/` after the planned
-package rename.
+`backend/ordersystem/src/test/java/com/rkk/orderprocessing/`.
 
 ## 4. Deterministic Time and Concurrency
 
@@ -69,8 +80,8 @@ Production code receives `java.time.Clock`; tests use `Clock.fixed(...)` or a
 small mutable test clock. IDs and timestamps are asserted as UTC `Instant`s.
 Concurrent tests coordinate executor threads with latches/barriers, start real
 transactions together, then assert committed database state and affected-row
-counts. Repeat race scenarios enough to detect non-determinism while keeping the
-assertion independent of which valid contender wins.
+counts. Deterministic barriers avoid timing loops while each assertion remains
+independent of which valid contender wins.
 
 Validation coverage includes PostgreSQL-incompatible U+0000 product IDs, known
 but never-manual status targets on missing IDs, 405/406/415 framework failures,
@@ -80,30 +91,26 @@ and backward-clock mutations proving `updatedAt` remains monotonic.
 `./mvnw test`. A `Files.walk` scan rejects
 `order.api -> order.persistence`, any `order.job` dependency except
 `order.application`, framework/persistence imports from `order.domain`, and any
-remaining `com.example.ordersystem` source. Stateless singleton design stays a
-focused code-review and unit-test rule rather than requiring reflection
-infrastructure. No ArchUnit dependency is justified for these few boundaries.
+remaining `com.example.ordersystem` source. A focused reflection assertion also
+requires final instance fields on scanned Spring components. No ArchUnit
+dependency is justified for these few boundaries.
 
-## 5. Planned Commands and Gates
+## 5. Commands and Evidence
 
-Run from `backend/ordersystem/` after the implementation phases add the planned
-plugins and dependencies:
+Run from `backend/ordersystem/`:
 
 ```bash
-./mvnw test
-./mvnw -Dtest=OrderServiceTest test
-./mvnw -Dit.test=OrderConcurrencyIT verify
-./mvnw verify
+./mvnw clean verify
 ```
 
-`test` runs fast `*Test` suites. `verify` must run unit, MockMvc, `*IT`, Flyway,
-and JaCoCo gates with Docker available. The planned merge thresholds are at least
+The clean command passed 71 architecture/domain/entity/application/scheduler/
+MockMvc tests and 26 Testcontainers PostgreSQL 17.6 tests (97 total) on Java
+21.0.11, with zero failures/errors/skips. It covered empty-schema Flyway, JPA
+validation, repository behavior, processor visibility/idempotence, and the three
+core race classes. Configured merge thresholds are at least
 80% line and branch coverage overall and 90% branch coverage for domain and
 application packages; the scenario matrix remains mandatory even when metrics
-pass. A local Supabase smoke test follows the green Testcontainers build.
-
-The generated context-load test passes through both `./mvnw test` and
-`./mvnw verify` on Eclipse Temurin 21.0.11. This proves only the scaffold and
-Java toolchain. Docker 29.4.0 is available, but no PostgreSQL/Testcontainers
-test or order feature exists yet, so no such result is claimed. See the
-[Implementation Plan](IMPLEMENTATION_PLAN.md) for the remaining gates.
+pass; all gates were met. Local Supabase startup/Flyway and the Newman
+running-service smoke passed 12 requests with 12 assertions, including database
+readiness. The opt-in local
+scheduler-handler smoke passed one test and reported `affectedCount=1`.

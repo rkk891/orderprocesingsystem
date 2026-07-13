@@ -90,9 +90,8 @@ checks passed. `./mvnw test` also passed the one generated context test after th
 docs-only change. Graphify supplied the cross-document map used during review;
 its final semantic-refresh worker did not return a valid graph fragment, so the
 direct canonical-document checks above—not the graph—are the final source of
-truth. The implementation status remains **not started**. The user must approve
-the corrected baseline before Phase 1 begins; future code and database claims
-require the automated and manual evidence in the test strategy.
+truth. At that review point implementation had not started; this historical
+status is superseded by the implementation evidence recorded below.
 
 ## 2026-07-13 — Implementation approval and adversarial batch design
 
@@ -109,10 +108,62 @@ require the automated and manual evidence in the test strategy.
 - Additional corrections: kept status strings across the API/application
   boundary, rejected U+0000 product IDs, made mutation timestamps monotonic, and
   closed 405/406/415 error behavior before controller code.
-- Automated verification: `./mvnw test` passed the generated baseline test on
-  Java 21 before commit `a00f286`; feature verification remains pending.
+- Automated verification at approval time: `./mvnw test` passed the generated
+  baseline test on Java 21 before commit `a00f286`; current feature evidence is
+  recorded in the next entry.
 - Sensitive-data check: passed; graph artifacts, `.env` files, and OS metadata
   are ignored.
+
+## 2026-07-13 — Phases 1–5 implementation and adversarial correction loop
+
+- Goal and scope: implement the Java/PostgreSQL foundation, synchronous order
+  API, conditional concurrency, and five-minute processor in reviewable batches.
+- AI/tool assistance: the main coding agent integrated parallel implementation,
+  contract, production-readiness, hallucination, and simplification reviews.
+  Graphify was a navigation aid; direct source, Spring Boot metadata, tests, and
+  PostgreSQL behavior remained authoritative.
+- Query-contract drift: the first controller draft rejected undocumented query
+  parameters although the canonical API says to ignore them. The controller and
+  MockMvc test were corrected to ignore `sort` while still rejecting repeated
+  documented parameters.
+- Jackson 3 correction: the initial duplicate-key setting used the obsolete
+  `spring.jackson.parser` namespace, and adversarial tests proved duplicate JSON
+  members still returned success. Local Boot 4.1 metadata identified
+  `spring.jackson.read.strict-duplicate-detection`; the property was corrected
+  and duplicate-member tests now pass.
+- Numeric coercion correction: Jackson could otherwise coerce `1.0` or `1e0`
+  into an integer quantity. Float-to-integer and scalar coercion were disabled,
+  with focused HTTP tests for both representations.
+- Safe telemetry/logging correction: unexpected HTTP and scheduler failures no
+  longer log raw throwable messages or stack traces from application code. The
+  transactional processor no longer logs success before its proxy can commit;
+  the scheduler records duration, rows, outcome, and failure only after the
+  processor returns or throws.
+- Atomicity-evidence correction: the original constraint test failed inside a
+  test-managed transaction and could not prove committed absence. A real
+  `OrderService` transaction now fails on the second child insert and a fresh
+  transaction proves that neither the parent nor any child committed.
+- Readiness correction: Boot's default readiness group did not include the
+  datasource despite the documentation claim. The group now explicitly includes
+  `db`; tests prove `200 UP` while PostgreSQL is available and sanitized
+  `503 DOWN` after database loss, and Newman covers the ready endpoint locally.
+- Simplification/reuse correction: global Jackson strictness replaced repeated
+  per-record unknown-member handlers, trace-ID creation was centralized, unused
+  exception state was removed, and API/application/persistence boundaries stayed
+  separate where they protect the contract.
+- Final automated verification: `./mvnw clean verify` passed 71 architecture/
+  domain/entity/application/scheduler/MockMvc tests and 26 PostgreSQL integration
+  tests (97 total). The PostgreSQL suite covered empty-schema Flyway, JPA
+  validation, real service-transaction rollback, database-loss readiness,
+  repository constraints/queries, processor idempotence, deterministic
+  post-snapshot visibility, and the three core races. All JaCoCo gates passed.
+- Local smoke: local Supabase startup and Flyway succeeded; the final Newman run
+  passed 12 requests with 12 assertions, including database readiness. The opt-in
+  scheduler-handler smoke passed one test and safely reported `affectedCount=1`.
+- Final review: dependency scope, secrets/generated files, documentation truth,
+  and simplification/reuse were checked. Public-deployment controls remain the
+  documented non-assessment boundary, not an unreported verification gap.
+- Sensitive-data check: no credentials or raw sensitive prompts were added.
 
 ## Reusable Entry Template
 

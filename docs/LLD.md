@@ -1,12 +1,15 @@
 # Low-Level Design
 
-> **Status:** Planned; not implemented. This is the canonical implementation-shape document.
+> **Status:** Implemented and verified for V1. This is the canonical implementation-shape document.
 
 ## 1. Scope and References
 
 This LLD realizes the behavior in [PRD](PRD.md) within the boundaries in [Architecture](ARCHITECTURE.md). HTTP fields belong to [API Contract](API_CONTRACT.md), storage details to [Data Model](DATA_MODEL.md), platform rules to [TRD](TRD.md), and verification to [Test Strategy](TEST_STRATEGY.md).
 
-The current `backend/ordersystem/` scaffold contains only the generated Spring application and context test under `com.example.ordersystem.ordersystem`. Everything below is the approved target under `com.rkk.orderprocessing`; no described class exists yet.
+The implementation now lives under `com.rkk.orderprocessing` and follows the
+package map below. The generated `com.example.ordersystem.ordersystem` package
+has been removed. The remaining delivery gates are tracked in
+[Implementation Plan](IMPLEMENTATION_PLAN.md) and [Test Strategy](TEST_STRATEGY.md).
 
 ## 2. Design Principles
 
@@ -174,7 +177,9 @@ The same algorithm uses the fixed predicate `id = :id AND status = PENDING` and 
 1. Scheduler fires at `0 */5 * * * *` in UTC.
 2. Processor captures one `Clock.instant()`.
 3. One transaction updates every row still `PENDING` to `PROCESSING` and sets each `updated_at` to the greater of its current value and the captured clock instant.
-4. Processor returns and logs affected count and duration. Immediate rerun affects zero.
+4. Processor returns the affected count. After its transactional proxy returns,
+   the scheduler records success, affected rows, and duration; failed commits
+   take the failure metric/log path. Immediate rerun affects zero.
 
 This is a schedule tick, not an “order is five minutes old” threshold.
 Eligibility follows PostgreSQL Read Committed statement visibility: a `PENDING`
@@ -254,6 +259,13 @@ No manual singleton, mutable static state, speculative event, or one-implementat
 | Add payment, inventory, or notification delivery | Write an outbox record in the order transaction and process separately | Requires a new ADR; plain Observer is insufficient |
 | Add a second persistence technology | Extract an application-owned persistence port and adapter | Do not create ports for a hypothetical second store |
 
-## 13. LLD Acceptance Gate
+## 13. LLD Acceptance Evidence
 
-Implementation may begin only after PRD/API/data/test documents agree with this class inventory, all internal links resolve, and any changed assumption is recorded in its canonical owner. Verification must prove the factory invariants, full state matrix, detached mapper boundary, shared transition classification, scheduler-to-processor wiring, and PostgreSQL races. API code must not import persistence, `job` must contain only the time adapter, and singleton beans must remain stateless. Each implementation slice leaves its targeted test green and updates `RESUME.md` with evidence.
+The canonical documents agree with this class inventory and changed assumptions
+are recorded in their owners. Automated verification proves aggregate factory
+invariants, the full state matrix, detached mapper boundary, shared transition
+classification, scheduler-to-processor wiring, statement-snapshot behavior, and
+PostgreSQL races. Architecture tests prove that API code does not import
+persistence, `job` contains only the time adapter, and singleton beans remain
+stateless. Exact build and smoke evidence is recorded in the test strategy and
+`RESUME.md`.

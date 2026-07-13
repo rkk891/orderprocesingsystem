@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | System | E-commerce Order Processing API |
-| Status | **Target design**; planned, not implemented |
+| Status | **Implemented and verified** for the V1 assessment scope |
 | Runtime | Java 21, Spring Boot 4.1.0 |
 | Architecture | Modular monolith |
 | Database | Supabase PostgreSQL through JDBC |
@@ -21,28 +21,25 @@ and the [tech-stack](decisions/0001-tech-stack.md) and
 [Supabase/concurrency](decisions/0002-supabase-and-concurrency.md) decisions for
 navigation and trade-offs.
 
-## 2. Current State Versus Target
+## 2. Current Implementation and Verification
 
-### Current scaffold (observed 2026-07-11)
+### Implemented baseline (verified 2026-07-13)
 
-- `backend/ordersystem/` contains a Maven Wrapper project using Java 21 and the
-  Spring Boot `4.1.0` parent.
-- Its only dependencies are `spring-boot-starter` and
-  `spring-boot-starter-test`; it has no web, persistence, validation, migration,
-  PostgreSQL, scheduling, or observability implementation.
-- The local machine selects Eclipse Temurin 21.0.11. Both `./mvnw test` and
-  `./mvnw verify` pass for the generated context-load test only.
-- The generated package `com.example.ordersystem.ordersystem` and the generated
-  context-load test are placeholders. No product requirement is implemented.
+- `backend/ordersystem/` uses the Maven Wrapper, Java 21, and Spring Boot 4.1.0;
+  code is rooted at `com.rkk.orderprocessing`.
+- MVC, validation, JPA, Flyway, PostgreSQL, scheduling, Actuator/Micrometer, and
+  Testcontainers support are present without an alternate database/client stack.
+- The V1 schema, synchronous API, conditional mutations, scheduled processor,
+  safe tracing/problem handling, and bounded scheduler telemetry are implemented.
+- A clean build passes 71 fast/unit/MockMvc tests and 26 PostgreSQL integration
+  tests. Local Supabase/Flyway, Newman, and the opt-in scheduler-handler smoke
+  are also green.
 
-### Target baseline
+### Public-deployment boundary
 
-- Rename the base package once, before feature work, to
-  `com.rkk.orderprocessing` and organize one singular `order` module by feature
-  layer, matching the canonical LLD package map.
-- Produce one executable Spring Boot service. Keep domain rules independent of
-  MVC, JPA, scheduling, and Supabase details.
-- Use the Maven Wrapper only; do not require a machine-global Maven version.
+- Authentication, independent migration/runtime identities, managed TLS
+  verification, rate limits, and operating targets remain required before public
+  exposure; they are intentionally outside the assessment scope.
 
 ## 3. Technology Stack
 
@@ -59,18 +56,16 @@ navigation and trade-offs.
 | Operations | Spring Boot Actuator and Micrometer | Standard health and metrics surface with minimal custom code. |
 | Build | Maven Wrapper | Reproducible local and CI entry point. |
 
-Dependency versions shall come from the Spring Boot dependency-management BOM
-unless a documented compatibility issue requires a pinned override. The target
-dependencies are planned additions; they are not present in the scaffold today.
-The planned Maven set is `spring-boot-starter-webmvc`,
+Dependency versions come from the Spring Boot dependency-management BOM unless
+a documented compatibility issue requires a pinned override. The Maven set is
+`spring-boot-starter-webmvc`,
 `spring-boot-starter-validation`, `spring-boot-starter-data-jpa`,
 `spring-boot-starter-flyway`, Flyway's PostgreSQL database module, the PostgreSQL
 JDBC driver at runtime, and `spring-boot-starter-actuator`; retain
 `spring-boot-starter-test`, `spring-boot-testcontainers`, and the Testcontainers
-PostgreSQL module in test scope. Add a technology-specific Boot test starter only
-when a test actually uses that slice; the current standalone MockMvc and full
-PostgreSQL contexts do not. Confirm the resolved dependency tree and add no
-overlapping web or database client stack.
+PostgreSQL module in test scope. `spring-boot-starter-webmvc-test` is present
+because `OrderControllerMockMvcTest` uses the Boot MVC slice; no unused JPA test
+slice or overlapping web/database client stack is present.
 
 Do not add a runtime OpenAPI generator in the initial scaffold. The indexed
 [API Contract](API_CONTRACT.md) is canonical until Spring Boot 4.1/Jackson 3
@@ -109,13 +104,14 @@ Configuration is externalized; secrets are never committed. Fixed product rules
 | `SPRING_DATASOURCE_URL` | Yes | JDBC PostgreSQL URL for local Supabase, managed direct connection, or managed session pooler. Managed URLs require TLS. |
 | `SPRING_DATASOURCE_USERNAME` | Yes | Externalized assessment database identity; production uses the hardened runtime role described below. |
 | `SPRING_DATASOURCE_PASSWORD` | Yes | Secret supplied by environment/secret manager; never logged. |
-| `SPRING_PROFILES_ACTIVE` | No | Selects `local`, `test`, or `prod`; no profile may contain credentials. |
+| `SPRING_PROFILES_ACTIVE` | No | Selects the credential-free `test` or `prod` overrides; local development uses the base profile plus datasource environment variables. |
 | `ORDERS_SCHEDULER_ENABLED` | No | Defaults to `true`; set `false` only for tests, migrations, or a deliberately non-worker process. |
 | `SERVER_PORT` | No | Standard Spring override; defaults to `8080`. |
 
-Target fixed settings are `spring.jpa.hibernate.ddl-auto=validate`,
+Implemented fixed settings are `spring.jpa.hibernate.ddl-auto=validate`,
 `spring.jpa.open-in-view=false`, Flyway enabled, and the scheduler expression
-`0 */5 * * * *` resolved in `UTC`. Pool size and timeouts must be set below the
+`0 */5 * * * *` resolved in `UTC`. Jackson rejects unknown/duplicate JSON members,
+scalar coercion, and float-to-integer coercion. Pool size and timeouts must be set below the
 selected Supabase plan's connection limits; do not copy an unverified universal
 pool size into configuration.
 
@@ -156,11 +152,13 @@ Auth, REST/GraphQL Data API, Realtime, Storage, or Edge Functions.
 - Manual status advancement and cancellation are conditional mutations against
   both order ID and expected current status. An affected-row count of zero is
   resolved to not-found or conflict; stale state is never silently overwritten.
-- The scheduler runs one set-based transaction that changes every committed
+- The transactional application processor runs one set-based update that changes every committed
   `PENDING` row to `PROCESSING` and updates its UTC modification timestamp. A
   concurrent cancel or transition wins according to PostgreSQL row locking; the
   loser no longer matches its status precondition. No cancelled row is revived.
-  Each statement uses `GREATEST(updated_at, :clockInstant)` so a backward clock
+  The scheduler records success metrics/logs only after the processor proxy
+  returns and transaction commit has succeeded. Each statement uses
+  `GREATEST(updated_at, :clockInstant)` so a backward clock
   cannot invalidate an otherwise legal mutation or an entire bulk tick.
 - Database constraints enforce allowed status values, positive quantities,
   non-blank products, uniqueness of `(order_id, product_id)`, and foreign-key
@@ -220,10 +218,10 @@ to 409. Stack traces and database details never cross the HTTP boundary.
 
 ## 11. Verification Gates
 
-The target is not considered implemented until the Maven Wrapper compile,
-unit tests, MockMvc contract tests, PostgreSQL integration
-tests, Flyway-on-empty-database test, concurrency tests, package-name scan, and
-local Supabase smoke test all pass. Scheduler tests call the handler directly;
+The implementation is considered verified only because the Maven Wrapper
+compile, unit tests, MockMvc contract tests, PostgreSQL integration tests,
+Flyway-on-empty-database test, concurrency tests, package-name scan, coverage
+gate, and local Supabase smoke all passed in the final workflow. Scheduler tests call the handler directly;
 only a focused scheduling-wiring test checks the cron contract. See
 [Test Strategy](TEST_STRATEGY.md) for the authoritative matrix.
 

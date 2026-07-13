@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Product | E-commerce Order Processing API |
-| Status | **Planned**; no product capability is implemented |
+| Status | **Implemented and verified** for the V1 assessment scope |
 | Planning baseline | 2026-07-11 |
 | Scope | Backend-only coding assignment |
 
@@ -180,5 +180,7 @@ Implementation is complete only when all acceptance criteria have automated
 coverage, the Maven verification build passes, migrations succeed against a
 fresh PostgreSQL instance, and a local API/scheduler smoke test is recorded.
 
-As of this baseline, only a generated Spring project scaffold exists. Every
-requirement and success check in this document is **planned, not implemented**.
+The Java 21/PostgreSQL foundation, order aggregate, synchronous API, scheduled
+processor, race handling, and operational smoke are implemented and verified.
+The authentication and deployment-hardening non-goals still prevent direct
+public exposure; they do not change V1 assessment completion.

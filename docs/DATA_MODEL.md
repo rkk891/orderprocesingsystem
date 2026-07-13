@@ -1,6 +1,6 @@
 # Data Model
 
-> **Status:** Planned; not implemented. Flyway will be the only schema writer.
+> **Status:** Implemented by Flyway `V1__create_orders.sql` and verified against Testcontainers and local Supabase PostgreSQL. Flyway is the only schema writer.
 
 ## Canonical references
 
@@ -8,7 +8,10 @@
 
 ## Scope and ownership
 
-The current scaffold has no database model. The target schema is PostgreSQL in Supabase, accessed by Spring Data JPA through JDBC. V1 stores orders and immutable line items only; it deliberately has no customer, price, inventory, payment, address, or audit-event tables. IDs and UTC timestamps are generated server-side.
+The V1 PostgreSQL schema is accessed by Spring Data JPA through JDBC. It stores
+orders and immutable line items only; it deliberately has no customer, price,
+inventory, payment, address, or audit-event tables. IDs and UTC timestamps are
+generated server-side. Local Supabase uses the same verified Flyway schema path.
 
 ```mermaid
 erDiagram
@@ -82,7 +85,7 @@ No separate `status` index is planned: the filtered-list composite index begins 
   new `updated_at`. `NOT NULL` constraints intentionally reject writes that omit
   those values; database clock defaults must not hide an application error.
 - Detail reads load one aggregate. Paged list reads order rows by the fixed composite sort and should return summaries; item collections are not join-fetched into a pageable query.
-- Flyway migration `V1__create_orders.sql` will create both tables, constraints, and indexes. Hibernate runs with schema validation only.
+- Flyway migration `V1__create_orders.sql` creates both tables, constraints, and indexes. Hibernate runs with schema validation only.
 
 ## Atomic mutation model
 

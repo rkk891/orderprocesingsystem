@@ -1,6 +1,6 @@
 # ADR 0002: Supabase PostgreSQL, Flyway Ownership, and Conditional Writes
 
-- **Status:** Accepted for target design; implementation pending
+- **Status:** Accepted and implemented
 - **Date:** 2026-07-11
 - **Owners:** Repository maintainers
 - **Related:** [TRD](../TRD.md), [LLD](../LLD.md), [Data Model](../DATA_MODEL.md), [Test Strategy](../TEST_STRATEGY.md)

@@ -38,5 +38,5 @@ This index is the navigation and ownership map for project knowledge. Documents 
 - `PRD.md` owns *what* and `LLD.md` owns *how*. Do not duplicate full rules elsewhere.
 - ADRs explain *why* a durable decision was made; they do not track progress.
 - `RESUME.md` is the only volatile queue. Completed implementation evidence belongs in the plan and tests.
-- Update all affected documents, contracts, and traceability rows in the same future change.
+- Update all affected documents, contracts, and traceability rows in the same change.
 - Broken links, conflicting rules, or unlabelled planned behavior block implementation.

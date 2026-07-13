@@ -3,6 +3,9 @@ package com.rkk.orderprocessing.order.persistence;
 import com.rkk.orderprocessing.order.domain.OrderStatus;
 import com.rkk.orderprocessing.testsupport.PostgresTestConfiguration;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -28,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * Verifies order mappings and atomic repository statements against PostgreSQL.
  */
-@SpringBootTest
+@SpringBootTest(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
 @ActiveProfiles("test")
 @Import(PostgresTestConfiguration.class)
 @Transactional
@@ -39,6 +42,9 @@ class OrderRepositoryIT {
 
     @Autowired
     private EntityManager entityManager;
+
+    @Autowired
+    private EntityManagerFactory entityManagerFactory;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -101,6 +107,77 @@ class OrderRepositoryIT {
             assertThat(summary.getStatus()).isEqualTo(OrderStatus.CANCELLED);
             assertThat(summary.getItemCount()).isOne();
         });
+    }
+
+    @Test
+    void ordersEqualCreationTimesByUuidDescending() {
+        String timestamp = "2026-07-13T09:00:00Z";
+        UUID lowerId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID higherId = UUID.fromString("ffffffff-ffff-ffff-ffff-ffffffffffff");
+        repository.save(order(
+                lowerId.toString(), timestamp, OrderItemEntity.create(0, "SKU-LOW", 1)));
+        repository.save(order(
+                higherId.toString(), timestamp, OrderItemEntity.create(0, "SKU-HIGH", 1)));
+        repository.flush();
+
+        Page<OrderRepository.OrderSummaryProjection> page =
+                repository.findSummaryPage(PageRequest.of(0, 10));
+
+        assertThat(page.getContent())
+                .extracting(OrderRepository.OrderSummaryProjection::getId)
+                .containsExactly(higherId, lowerId);
+    }
+
+    @Test
+    void detailAndSummaryReadsUseBoundedStatementCounts() {
+        OrderEntity first = repository.save(order(
+                "0b5c9ac8-c65d-45e5-acd7-06f840bb21b1",
+                "2026-07-13T09:00:00Z",
+                OrderItemEntity.create(0, "QUERY-COUNT-1", 1),
+                OrderItemEntity.create(1, "QUERY-COUNT-2", 1)));
+        repository.save(order(
+                "65e89b89-78e4-494c-885e-5cc395b104bf",
+                "2026-07-13T08:00:00Z",
+                OrderItemEntity.create(0, "QUERY-COUNT-3", 1)));
+        repository.flush();
+        entityManager.clear();
+
+        Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+        statistics.clear();
+
+        OrderEntity detail = repository.findDetailById(first.getId()).orElseThrow();
+        assertThat(detail.getItems()).hasSize(2);
+        assertThat(statistics.getPrepareStatementCount()).isOne();
+
+        statistics.clear();
+        Page<OrderRepository.OrderSummaryProjection> page =
+                repository.findSummaryPage(PageRequest.of(0, 1));
+        assertThat(page.getTotalElements()).isEqualTo(2);
+        assertThat(page.getContent()).hasSize(1);
+        assertThat(statistics.getPrepareStatementCount()).isEqualTo(2);
+    }
+
+    @Test
+    void listingQueriesCanUseTheDesignedIndexes() {
+        repository.saveAndFlush(order(
+                "2647886a-ac1e-4c80-a7d1-46f307061d21",
+                "2026-07-13T09:00:00Z",
+                OrderItemEntity.create(0, "INDEX-PROOF", 1)));
+        entityManager.clear();
+        jdbcTemplate.execute("set local enable_seqscan = off");
+
+        String unfilteredPlan = String.join("\n", jdbcTemplate.queryForList(
+                "explain (costs off) select id, status, created_at, updated_at "
+                        + "from orders order by created_at desc, id desc limit 20",
+                String.class));
+        String filteredPlan = String.join("\n", jdbcTemplate.queryForList(
+                "explain (costs off) select id, status, created_at, updated_at "
+                        + "from orders where status = 'PENDING' "
+                        + "order by created_at desc, id desc limit 20",
+                String.class));
+
+        assertThat(unfilteredPlan).contains("idx_orders_created_id");
+        assertThat(filteredPlan).contains("idx_orders_status_created_id");
     }
 
     @Test

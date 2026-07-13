@@ -7,7 +7,8 @@ Codex contract for this order-processing assignment. Keep work scoped, readable,
 - Backend: Java 21, Spring Boot 4.1.0, Maven Wrapper, Spring MVC, JPA, Validation, Scheduling.
 - Database: Supabase PostgreSQL over JDBC; Flyway alone owns schema migrations.
 - Shape: package-by-feature modular monolith under `backend/ordersystem/`.
-- Current phase: documentation and LLD only. Do not implement until the user approves the plan.
+- Current phase: V1 assessment implementation is complete and verified; preserve
+  the documented public-deployment hardening boundary.
 
 ## First Reads and Source of Truth
 
@@ -27,17 +28,23 @@ For non-trivial work:
 
 ## Project Map
 
-- Scaffold: `backend/ordersystem/`.
-- Target package: `backend/ordersystem/src/main/java/com/rkk/orderprocessing/`.
+- Service: `backend/ordersystem/`.
+- Current package: `backend/ordersystem/src/main/java/com/rkk/orderprocessing/`.
 - Tests mirror target packages under `backend/ordersystem/src/test/java/`.
 - Migrations: `backend/ordersystem/src/main/resources/db/migration/`.
 - Source-of-truth docs: `docs/`; current queue: `RESUME.md`.
 
-The generated `com.example.ordersystem.ordersystem` package is current scaffold evidence, not the target design.
+The generated `com.example.ordersystem.ordersystem` package has been removed;
+architecture tests reject its reintroduction.
 
 ## Commands
 
-From `backend/ordersystem/`, `./mvnw test` and `./mvnw verify` are verified for the generated context test only. `./mvnw spring-boot:run` becomes the development entry point after runtime configuration exists. Supabase local development uses `supabase start`/`supabase stop` only after Docker and `supabase/config.toml` exist. State exactly which scope each command verified.
+From `backend/ordersystem/`, `./mvnw clean verify` runs the complete fast,
+MockMvc, PostgreSQL/Flyway/race, and coverage suite. `./mvnw spring-boot:run` is
+the development entry point after datasource variables are supplied. Local
+Supabase uses the committed `supabase/config.toml`; the opt-in scheduler smoke
+and Newman workflow are documented in `README.md`. State exactly which scope
+each command verified.
 
 ## Hard Domain Rules
 

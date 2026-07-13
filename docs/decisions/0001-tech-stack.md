@@ -1,6 +1,6 @@
 # ADR 0001: Java 21 and Spring Boot 4.1 Backend
 
-- **Status:** Accepted for target design; implementation pending
+- **Status:** Accepted and implemented
 - **Date:** 2026-07-11
 - **Owners:** Repository maintainers
 - **Related:** [PRD](../PRD.md), [TRD](../TRD.md), [Architecture](../ARCHITECTURE.md), [Implementation Plan](../IMPLEMENTATION_PLAN.md)

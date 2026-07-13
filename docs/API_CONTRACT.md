@@ -1,6 +1,6 @@
 # Orders API Contract
 
-> **Status:** Planned; no endpoint is implemented. This document owns the HTTP contract.
+> **Status:** Implemented and running-service verified for V1. This document owns the HTTP contract.
 
 ## 1. Conventions
 
@@ -180,6 +180,7 @@ Every problem response contains all eight top-level members shown above:
 | `ORDER_NOT_FOUND` | `urn:problem:order-not-found` | `Order not found` | 404 | `The requested order does not exist.` |
 | `ORDER_STATE_CONFLICT` | `urn:problem:order-state-conflict` | `Order state conflict` | 409 | `The order cannot make the requested transition.` |
 | `INTERNAL_ERROR` | `urn:problem:internal-error` | `Internal error` | 500 | `An unexpected error occurred.` |
+| `RESOURCE_NOT_FOUND` | `urn:problem:resource-not-found` | `Resource not found` | 404 | `The requested resource does not exist.` |
 | `METHOD_NOT_ALLOWED` | `urn:problem:method-not-allowed` | `Method not allowed` | 405 | `The HTTP method is not supported for this resource.` |
 | `NOT_ACCEPTABLE` | `urn:problem:not-acceptable` | `Not acceptable` | 406 | `The requested response representation is not available.` |
 | `UNSUPPORTED_MEDIA_TYPE` | `urn:problem:unsupported-media-type` | `Unsupported media type` | 415 | `The request media type is not supported.` |

@@ -1,16 +1,22 @@
 # Architecture
 
-> **Status:** Planned; not implemented. This document is the target architecture.
+> **Status:** Implemented and verified for the V1 assessment scope.
 
 ## Canonical references
 
 [Documentation index](INDEX.md) · [PRD](PRD.md) · [TRD](TRD.md) · [Data model](DATA_MODEL.md) · [Implementation plan](IMPLEMENTATION_PLAN.md) · [Test strategy](TEST_STRATEGY.md)
 
-## Current and target state
+## Current implementation and verification
 
-The current repository contains a generated Spring Initializr scaffold at `backend/ordersystem/`: Java 21, Maven Wrapper, Spring Boot 4.1.0, and package `com.example.ordersystem.ordersystem`. It has no order behavior or persistence yet.
+The repository contains one Java 21/Spring Boot 4.1.0 service at
+`backend/ordersystem/`, rooted at `com.rkk.orderprocessing`. The V1 Flyway
+migration, order API/application/domain/persistence layers, UTC scheduler,
+request tracing, problem mapping, and operational metrics are implemented.
 
-The target is a package-by-feature modular monolith rooted at `com.rkk.orderprocessing`. It exposes one versioned REST API and persists to Supabase-hosted PostgreSQL through JDBC. Flyway is the sole schema owner; Hibernate validates rather than creates or updates schema.
+The service is a package-by-feature modular monolith. It exposes one versioned
+REST API and persists to PostgreSQL through JDBC/JPA. Flyway is the sole schema
+owner; Hibernate validates rather than creates or updates schema. Targeted
+and clean Testcontainers builds plus local Supabase/Flyway/Newman smoke are green.
 
 ## Assumptions and success checks
 
@@ -61,7 +67,14 @@ flowchart TB
     Repo --> PostgreSQL["Supabase PostgreSQL"]
 ```
 
-Target code lives below `backend/ordersystem/src/main/java/com/rkk/orderprocessing/`; migrations live in `backend/ordersystem/src/main/resources/db/migration/`. Controllers own HTTP translation, application use cases own transactions and aggregate validation, `OrderStatus` owns lifecycle rules, and repositories own entities and query mechanics. API mapping crosses only immutable application commands/results; API code never imports persistence. The scheduler invokes the application processor through a separate Spring bean so transaction interception is effective. No controller or scheduler contains lifecycle policy.
+Code lives below `backend/ordersystem/src/main/java/com/rkk/orderprocessing/`;
+migrations live in `backend/ordersystem/src/main/resources/db/migration/`.
+Controllers own HTTP translation, application use cases own transactions and
+aggregate validation, `OrderStatus` owns lifecycle rules, and repositories own
+entities and query mechanics. API mapping crosses only immutable application
+commands/results; API code never imports persistence. The scheduler invokes the
+application processor through a separate Spring bean so transaction interception
+is effective. No controller or scheduler contains lifecycle policy.
 
 ## Runtime flows and transaction boundaries
 
@@ -91,7 +104,11 @@ sequenceDiagram
 - **Create:** named entity creation methods build one valid pending aggregate; one transaction writes the order and all items, and any failure rolls it back.
 - **Detail/list:** read-only transactions. List uses `page=0`, `size=20`, maximum 100, ordered by `created_at DESC, id DESC`.
 - **Manual transition/cancel:** one conditional update plus response read in one transaction. The SQL predicate includes the required source status.
-- **Scheduled processing:** the time adapter calls a separate application processor; one transaction bulk-updates every row still `PENDING` to `PROCESSING`. The trigger contains no business logic.
+- **Scheduled processing:** the time adapter calls a separate transactional
+  application processor; one statement bulk-updates every row still `PENDING`
+  to `PROCESSING`. After the processor proxy returns—and therefore after commit—
+  the scheduler records duration, affected rows, success/failure, and a safe
+  structured log. The processor does not emit a premature success signal.
 
 At Read Committed, PostgreSQL waits on a concurrently changed row and re-evaluates the `WHERE` predicate. Therefore cancellation versus scheduling, duplicate transitions, and overlapping scheduler replicas have one effective winner; losers update zero rows. A failed job rolls back and the next tick retries remaining `PENDING` rows.
 
@@ -112,6 +129,12 @@ All self-transitions, skips, reversals, and transitions out of terminal states r
 
 ## Operational boundaries and risks
 
-Use TLS for Supabase connections, least-privilege database credentials, strict boundary validation, parameterized queries, and logs without request bodies or secrets. Emit trace IDs, request outcomes, job duration, and affected-row counts. Health checks distinguish application liveness from database readiness.
+Use TLS for Supabase connections, least-privilege database credentials, strict
+boundary validation, parameterized queries, and logs without request bodies,
+raw throwables, or secrets. The implementation emits trace IDs, request outcomes,
+job duration, affected-row counts, and bounded-cardinality metrics. Health and
+database-backed readiness probes are configured; the local running-service smoke
+proved the ready state and a PostgreSQL integration test proved sanitized
+`503 DOWN` behavior after database loss.
 
 The in-process scheduler does not run while every replica is down; this is accepted for V1 because the next tick catches up. Offset pages can shift under concurrent inserts, and lack of authentication means the API must not be internet-exposed as a production multi-user service. Revisit external scheduling, cursor pagination, and identity only when requirements demand them.
