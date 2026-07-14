@@ -1,6 +1,6 @@
 # Project Handoff
 
-**Updated:** 2026-07-13  
+**Updated:** 2026-07-14
 **Phase:** Assessment implementation complete
 **Implementation status:** Phases 1–5 verified on 2026-07-13
 
@@ -18,6 +18,9 @@
   startup and Flyway migration also completed successfully.
 - The V1 Flyway migration, order domain/persistence/application/API layers,
   scheduler, trace/error handling, and scheduler metrics are implemented.
+- Root `./dev` provides secret-safe one-command local Docker readiness,
+  Supabase startup, datasource wiring, application boot, readiness reporting,
+  and owned cleanup.
 
 ## Locked Design Decisions
 
@@ -73,6 +76,8 @@ TRD explicitly keeps outside this assessment.
   smoke passed 12 requests with 12 assertions, including database readiness.
   The explicit local scheduler
   handler smoke passed one test and reported `affectedCount=1`.
+- The `./dev` launcher was verified from outside the repository, including cold
+  and warm Supabase ownership paths, HTTP readiness, signal cleanup, and Newman.
 - Final `./mvnw clean verify` passed 71 fast/unit/MockMvc tests and 26
   Testcontainers PostgreSQL integration tests (97 total), including Flyway, JPA
   validation, aggregate rollback, database readiness failure, processor snapshot

@@ -104,7 +104,7 @@ Configuration is externalized; secrets are never committed. Fixed product rules
 | `SPRING_DATASOURCE_URL` | Yes | JDBC PostgreSQL URL for local Supabase, managed direct connection, or managed session pooler. Managed URLs require TLS. |
 | `SPRING_DATASOURCE_USERNAME` | Yes | Externalized assessment database identity; production uses the hardened runtime role described below. |
 | `SPRING_DATASOURCE_PASSWORD` | Yes | Secret supplied by environment/secret manager; never logged. |
-| `SPRING_PROFILES_ACTIVE` | No | Selects the credential-free `test` or `prod` overrides; local development uses the base profile plus datasource environment variables. |
+| `SPRING_PROFILES_ACTIVE` | No | Selects the credential-free `test` or `prod` overrides; local development uses the base profile plus datasource environment variables, which `./dev` can supply in-process. |
 | `ORDERS_SCHEDULER_ENABLED` | No | Defaults to `true`; set `false` only for tests, migrations, or a deliberately non-worker process. |
 | `SERVER_PORT` | No | Standard Spring override; defaults to `8080`. |
 
@@ -126,7 +126,9 @@ hardening does not require an application-architecture change.
 ## 6. Supabase PostgreSQL Connection Modes
 
 - **Local development:** connect by JDBC to the PostgreSQL endpoint and
-  credentials reported by the local Supabase CLI. Do not hard-code its port.
+  credentials reported by the local Supabase CLI. The root `./dev` launcher
+  performs this wiring without printing or persisting credentials. Do not
+  hard-code its port.
 - **Managed, preferred:** a long-lived JVM uses the direct connection when its
   network supports the endpoint. This is also the preferred migration route.
 - **Managed, IPv4-only:** use Supavisor session mode for the persistent service.

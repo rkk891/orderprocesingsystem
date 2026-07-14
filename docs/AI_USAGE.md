@@ -165,6 +165,34 @@ status is superseded by the implementation evidence recorded below.
   documented non-assessment boundary, not an unreported verification gap.
 - Sensitive-data check: no credentials or raw sensitive prompts were added.
 
+## 2026-07-14 — One-command local launcher
+
+- Goal and scope: replace the multi-command local datasource setup with a safe
+  repository-root command that boots the existing application stack.
+- AI/tool assistance: parallel reviews compared a committed environment file,
+  Make indirection, Docker Compose, and a thin Bash launcher. The launcher was
+  selected as the smallest option that preserves the existing architecture.
+- Files or decisions influenced: added `./dev`; updated README onboarding, the
+  TRD configuration contract, and the volatile handoff.
+- Issue, uncertainty, or incorrect suggestion: committing local credentials or
+  hard-coding the configured PostgreSQL port would have made startup shorter but
+  contradicted the security and Supabase connection contracts.
+- Correction made and why: the launcher reads only `DB_URL` from `supabase
+  status -o env`, parses it without `source` or `eval`, and passes credentials to
+  the Maven child process without printing or persisting them.
+- Automated verification: `bash -n dev`, help/status/error paths, a cold launch
+  from outside the repository, warm reuse of pre-existing Supabase, readiness
+  `200`, Newman 12/12, terminal interrupt and direct `TERM` cleanup, and
+  `./mvnw clean verify` (97 tests) all passed.
+- Human verification/review: independent reviews covered credential handling,
+  signal cleanup, existing Supabase ownership, path spaces, and portability.
+- Official sources consulted: none; the committed Supabase configuration and
+  locally installed CLI behavior were authoritative for this repository change.
+- Residual risk or follow-up: the launcher assumes the local CLI reports the
+  documented PostgreSQL URL shape and does not install missing prerequisites.
+- Sensitive-data check: passed; no datasource credential is printed, persisted,
+  or added to Git.
+
 ## Reusable Entry Template
 
 Copy this section for each material AI-assisted change. Summarize techniques;
