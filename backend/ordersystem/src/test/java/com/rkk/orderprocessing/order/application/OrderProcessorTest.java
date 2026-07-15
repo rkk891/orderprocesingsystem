@@ -15,7 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 /** Direct test of the transactional handler without waiting for wall-clock scheduling. */
 @ExtendWith(MockitoExtension.class)
-class PendingOrderProcessorTest {
+class OrderProcessorTest {
 
     @Mock
     private OrderRepository repository;
@@ -24,7 +24,7 @@ class PendingOrderProcessorTest {
     void capturesOneClockInstantAndReturnsTheBulkAffectedCount() {
         Instant now = Instant.parse("2026-07-11T12:30:00Z");
         when(repository.processPending(now)).thenReturn(7);
-        PendingOrderProcessor processor = new PendingOrderProcessor(
+        OrderProcessor processor = new OrderProcessor(
                 repository,
                 Clock.fixed(now, ZoneOffset.UTC));
 

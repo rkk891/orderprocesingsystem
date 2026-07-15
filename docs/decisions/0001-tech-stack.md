@@ -48,8 +48,10 @@ Boot dependency management unless a verified incompatibility is documented.
 - Domain rules must not depend on MVC, scheduling, or Supabase APIs.
 - Framework conveniences do not replace explicit transaction, validation, and
   race tests.
-- Runtime OpenAPI generation is deferred until a Spring Boot 4.1/Jackson 3
-  compatible version is verified; `docs/API_CONTRACT.md` owns the initial contract.
+- Springdoc 3.0.3 provides a Boot 4-compatible local Swagger UI. It renders a
+  checked-in, contract-tested OpenAPI artifact because runtime inference cannot
+  represent the API's custom response, query-map, and no-body rules accurately;
+  `docs/API_CONTRACT.md` remains canonical.
 - Developers and CI must use Java 21 and verify the Maven Wrapper without
   lowering the target to match a machine-local runtime.
 - Reconsider Java 25 only for a demonstrated runtime/support need. Reconsider

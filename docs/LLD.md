@@ -33,29 +33,34 @@ backend/ordersystem/src/main/java/com/rkk/orderprocessing/
 │   └── SchedulingConfiguration.java
 ├── shared/api/
 │   ├── ApiExceptionHandler.java
+│   ├── OpenApiDocumentController.java
 │   └── RequestTraceFilter.java
 └── order/
     ├── api/
     │   ├── OrderController.java
-    │   ├── OrderApiMapper.java
-    │   └── dto/
-    │       ├── CreateOrderRequest.java
-    │       ├── CreateOrderItemRequest.java
-    │       ├── UpdateOrderStatusRequest.java
+    │   ├── ApiMapper.java
+    │   ├── request/
+    │   │   ├── NewOrderRequest.java
+    │   │   ├── NewOrderRequest.Item.java
+    │   │   └── UpdateStatusRequest.java
+    │   └── response/
     │       ├── OrderResponse.java
-    │       ├── OrderItemResponse.java
-    │       ├── OrderSummaryResponse.java
-    │       └── OrderPageResponse.java
+    │       ├── OrderResponse.Item.java
+    │       ├── SummaryResponse.java
+    │       └── PageResponse.java
     ├── application/
-    │   ├── CreateOrderCommand.java
-    │   ├── OrderDetailsResult.java
-    │   ├── OrderPageResult.java
-    │   ├── OrderResultMapper.java
+    │   ├── DataMapper.java
     │   ├── OrderService.java
-    │   ├── PendingOrderProcessor.java
-    │   ├── InvalidOrderException.java
-    │   ├── OrderNotFoundException.java
-    │   └── OrderStateConflictException.java
+    │   ├── OrderProcessor.java
+    │   ├── command/
+    │   │   └── CreateOrderData.java
+    │   ├── result/
+    │   │   ├── OrderDetails.java
+    │   │   └── OrderPage.java
+    │   └── exception/
+    │       ├── InvalidOrderException.java
+    │       ├── OrderNotFoundException.java
+    │       └── OrderStateConflictException.java
     ├── domain/
     │   └── OrderStatus.java
     ├── persistence/
@@ -63,12 +68,14 @@ backend/ordersystem/src/main/java/com/rkk/orderprocessing/
     │   ├── OrderItemEntity.java
     │   └── OrderRepository.java
     └── job/
-        └── PendingOrderScheduler.java
+        └── OrderScheduler.java
 ```
 
 Migrations live in `backend/ordersystem/src/main/resources/db/migration/`. Tests mirror these packages under `src/test/java`.
+The checked-in machine-readable API contract lives at
+`src/main/resources/openapi/openapi.yaml`.
 
-Allowed source dependencies are `api -> application`, `job -> application`, `application -> domain/persistence`, and `persistence -> domain`. `domain` imports no Spring, JPA, HTTP, or persistence type. The scheduler and controller are independent inbound adapters; neither calls the other.
+Allowed source dependencies are `api -> application`, `job -> application`, `application -> domain/persistence`, and `persistence -> domain`. API `request`/`response` records and application `command`/`result`/`exception` types are carrier-only boundary packages; architecture tests keep them free of feature-internal or framework/persistence dependencies as appropriate. `domain` imports no Spring, JPA, HTTP, or persistence type. The scheduler and controller are independent inbound adapters; neither calls the other.
 
 ## 4. Class Responsibilities
 
@@ -78,18 +85,19 @@ Allowed source dependencies are `api -> application`, `job -> application`, `app
 | `ClockConfiguration` | Provide one injectable UTC-capable `Clock` | Read time through static calls in business code |
 | `SchedulingConfiguration` | Enable scheduling and conditionally register the job when `ORDERS_SCHEDULER_ENABLED` is true | Decide cadence or which rows are eligible |
 | `OrderStatus` | Declare five statuses, legal adjacent target, and terminal state | Access Spring, JPA, or HTTP |
-| `OrderEntity` | Map the aggregate and provide `createPending(...)` to set `PENDING`, timestamps, child order, and parent links | Accept API DTOs or decide transitions |
+| `OrderEntity` | Map the aggregate and provide `createPending(...)` to enforce 1–100 items before setting `PENDING`, timestamps, child order, and parent links | Accept API request records or decide transitions |
 | `OrderItemEntity` | Map item data and provide a named creation method for a validated item value | Have an independent repository/lifecycle |
 | `OrderRepository` | JPA detail/list reads and explicit conditional mutations | Implement product policy or expose entities to controllers |
-| Application command/result records | Carry persistence-free use-case input/output; nested item/summary records avoid extra files | Carry HTTP or JPA annotations |
-| `OrderResultMapper` | Convert entities/projections to detached application results while the transaction is open | Return API DTOs or query the database |
+| Application `command`/`result` records | Carry persistence-free use-case input/output; nested item/summary records avoid extra files | Carry HTTP or JPA annotations |
+| `DataMapper` | Convert entities/projections to detached application results while the transaction is open | Return API DTOs or query the database |
 | `OrderService` | Act as the use-case facade: validate rules, own transactions, and classify 404/409 | Schedule itself, expose entities, or build HTTP responses |
-| `PendingOrderProcessor` | Run the transactional set-based pending update and return affected count | Poll/save rows individually |
-| `PendingOrderScheduler` | Own the fixed `@Scheduled(cron = "0 */5 * * * *", zone = "UTC")` adapter and invoke the processor | Contain transaction or lifecycle rules |
+| `OrderProcessor` | Run the transactional set-based pending update and return affected count | Poll/save rows individually |
+| `OrderScheduler` | Own the fixed `@Scheduled(cron = "0 */5 * * * *", zone = "UTC")` adapter and invoke the processor | Contain transaction or lifecycle rules |
 | `OrderController` | Validate inputs, call service, set HTTP status/headers | Open transactions or access repositories |
-| Request/response records | Define immutable HTTP boundary | Carry persistence annotations |
-| `OrderApiMapper` | Convert API requests to commands and application results to responses | Import persistence types, query data, or enforce business rules |
+| API `request`/`response` records | Define the immutable HTTP boundary; collection-bearing records take defensive snapshots without hiding values that Jakarta Validation must report | Carry persistence annotations |
+| `ApiMapper` | Convert API requests to commands and application results to responses | Import persistence types, query data, or enforce business rules |
 | `ApiExceptionHandler` | Produce stable problem-details responses | Leak SQL, stack traces, or secrets |
+| `OpenApiDocumentController` | Serve the checked-in OpenAPI contract while local Swagger UI is enabled | Infer behavior from controllers or expose the contract in the `prod` profile |
 
 All Spring components above are stateless, constructor-injected singleton beans. JPA entities and persistence contexts remain transaction-local and are never cached in singleton fields. `Clock.systemUTC()` is immutable; any mutable test clock is test-local.
 
@@ -99,12 +107,12 @@ The application surface is concrete and small; no one-implementation service int
 
 | Operation | Contract | Transaction |
 | --- | --- | --- |
-| `OrderService.create(CreateOrderCommand)` | Return `OrderDetailsResult`; reject invalid aggregate input | Read-write |
+| `OrderService.create(CreateOrderData)` | Return `OrderDetails`; reject invalid aggregate input | Read-write |
 | `OrderService.get(UUID)` | Return detached detail or throw `OrderNotFoundException` | Read-only |
-| `OrderService.list(String?, int page, int size)` | Parse an optional exact status and return `OrderPageResult`; choose filtered or unfiltered summary query | Read-only |
-| `OrderService.advanceStatus(UUID, String)` | Parse the target, apply the one legal predecessor rule, and return detail, 404, or 409 | Read-write |
+| `OrderService.list(String?, int page, int size)` | Parse an optional exact status and return `OrderPage`; choose filtered or unfiltered summary query | Read-only |
+| `OrderService.updateStatus(UUID, String)` | Parse the target, apply the one legal predecessor rule, and return detail, 404, or 409 | Read-write |
 | `OrderService.cancel(UUID)` | Compare-and-set `PENDING -> CANCELLED`; return detail, 404, or 409 | Read-write |
-| `PendingOrderProcessor.processPending()` | Bulk-update pending rows using one timestamp; return affected count | Read-write |
+| `OrderProcessor.processPending()` | Bulk-update pending rows using one timestamp; return affected count | Read-write |
 
 `OrderRepository` provides aggregate detail lookup, filtered and unfiltered summary-page projections, existence lookup, `save`, one expected-status mutation, and one pending bulk mutation. Mutation methods return affected row counts and clear the persistence context before any response fetch. One private `OrderService` helper performs conditional update -> detail fetch on success -> existence classification on zero, so advance and cancel cannot drift.
 
@@ -147,11 +155,11 @@ conditional mutation.
 
 ### Create
 
-1. HTTP validation checks item count, product ID, quantity, and unknown fields; `OrderApiMapper` creates a `CreateOrderCommand`.
+1. HTTP validation checks item count, product ID, quantity, and unknown fields; `ApiMapper` creates a `CreateOrderData`.
 2. `OrderService` rejects exact duplicate product IDs before persistence work.
-3. One `Clock.instant()` and UUID are assigned; named item/aggregate creation methods establish positions, parent links, initial status, and timestamps.
+3. One `Clock.instant()` and UUID are assigned; named item/aggregate creation methods recheck the 1–100 cardinality boundary before establishing positions, parent links, initial status, and timestamps.
 4. One transaction persists the parent and all children through cascade persist.
-5. `OrderResultMapper` creates a detached result. After commit, the API mapper creates the response and the controller returns 201 with `Location`.
+5. `DataMapper` creates a detached result. After commit, the API mapper creates the response and the controller returns 201 with `Location`.
 
 Any failure rolls back parent and items. Create retries are not deduplicated in V1.
 
@@ -262,10 +270,11 @@ No manual singleton, mutable static state, speculative event, or one-implementat
 ## 13. LLD Acceptance Evidence
 
 The canonical documents agree with this class inventory and changed assumptions
-are recorded in their owners. Automated verification proves aggregate factory
-invariants, the full state matrix, detached mapper boundary, shared transition
-classification, scheduler-to-processor wiring, statement-snapshot behavior, and
-PostgreSQL races. Architecture tests prove that API code does not import
-persistence, `job` contains only the time adapter, and singleton beans remain
-stateless. Exact build and smoke evidence is recorded in the test strategy and
-`RESUME.md`.
+are recorded in their owners. Automated verification proves request collection
+immutability, aggregate cardinality before child attachment, the full state
+matrix, detached mapper boundary, shared transition classification,
+scheduler-to-processor wiring, statement-snapshot behavior, and PostgreSQL
+races. Architecture tests prove that the semantic boundary packages remain
+present and dependency-clean, API code does not import persistence, `job`
+contains only the time adapter, and singleton beans remain stateless. Exact
+build and smoke evidence is recorded in the test strategy and `RESUME.md`.

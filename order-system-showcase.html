@@ -1,0 +1,2288 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Order Processing API — Interactive Technical Overview</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: light-dark(#f5f7fb, #080a0f);
+      --surface: light-dark(rgba(255, 255, 255, 0.82), rgba(18, 22, 31, 0.78));
+      --surface-strong: light-dark(#ffffff, #12161f);
+      --text: light-dark(#111827, #f6f7fb);
+      --muted: light-dark(#5f6b7c, #9ca6b7);
+      --line: light-dark(rgba(17, 24, 39, 0.12), rgba(255, 255, 255, 0.1));
+      --accent: light-dark(#2456d6, #8ab4ff);
+      --accent-strong: light-dark(#143aa3, #d4e3ff);
+      --accent-soft: light-dark(rgba(36, 86, 214, 0.1), rgba(138, 180, 255, 0.12));
+      --pending: light-dark(#925b00, #f5c451);
+      --processing: light-dark(#2456d6, #8ab4ff);
+      --shipped: light-dark(#6d3cc4, #c7a9ff);
+      --delivered: light-dark(#08775c, #68d7b5);
+      --cancelled: light-dark(#a13b32, #f29b91);
+      --glow-a: light-dark(rgba(36, 86, 214, 0.18), rgba(83, 140, 255, 0.2));
+      --glow-b: light-dark(rgba(84, 57, 180, 0.12), rgba(157, 113, 255, 0.16));
+      --shadow: light-dark(0 24px 80px rgba(22, 34, 57, 0.12), 0 28px 90px rgba(0, 0, 0, 0.42));
+      --radius: 24px;
+      --max: 1180px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background: var(--bg);
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 16%, var(--glow-a), transparent 34rem),
+        radial-gradient(circle at 86% 20%, var(--glow-b), transparent 30rem),
+        var(--bg);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+
+    button,
+    a {
+      font: inherit;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    button:focus-visible,
+    a:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--accent) 65%, transparent);
+      outline-offset: 3px;
+    }
+
+    .skip-link {
+      position: absolute;
+      inset: 0 auto auto 0;
+      z-index: 20;
+      padding: 0.75rem 1rem;
+      color: var(--bg);
+      background: var(--text);
+      transform: translateY(-120%);
+    }
+
+    .skip-link:focus {
+      transform: translateY(0);
+    }
+
+    .shell {
+      width: min(calc(100% - 3rem), var(--max));
+      margin-inline: auto;
+    }
+
+    .site-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 2rem;
+      padding-block: 1.4rem;
+      border-block-end: 1px solid var(--line);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 2.25rem;
+      aspect-ratio: 1;
+      border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--line));
+      border-radius: 0.75rem;
+      color: var(--accent-strong);
+      background: var(--accent-soft);
+      box-shadow: inset 0 0 24px var(--glow-a);
+    }
+
+    .site-nav {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .site-nav a {
+      color: var(--muted);
+      text-decoration: none;
+    }
+
+    .site-nav a:hover {
+      color: var(--text);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(32rem, 1.1fr);
+      align-items: center;
+      gap: 5rem;
+      min-height: 720px;
+      padding-block: 5rem;
+    }
+
+    .hero-copy {
+      animation: hero-copy-in 720ms cubic-bezier(.2, .8, .2, 1) both;
+    }
+
+    .eyebrow,
+    .section-kicker,
+    .visual-label {
+      color: var(--accent-strong);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-block-start: 0;
+    }
+
+    h1 {
+      max-width: 12ch;
+      margin-block: 1.2rem 1.5rem;
+      font-size: clamp(3.4rem, 6vw, 6.4rem);
+      line-height: 0.96;
+      letter-spacing: -0.065em;
+    }
+
+    .hero-lead {
+      max-width: 39rem;
+      margin-block-end: 2rem;
+      color: var(--muted);
+      font-size: 1.14rem;
+    }
+
+    .hero-actions,
+    .technology-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .button {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      min-height: 2.9rem;
+      padding: 0.72rem 1.1rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--text);
+      background: var(--surface);
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+    }
+
+    .button:hover {
+      border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+      transform: translateY(-2px);
+    }
+
+    .button.primary {
+      border-color: transparent;
+      color: var(--bg);
+      background: var(--text);
+    }
+
+    .button[aria-pressed="true"] {
+      border-color: var(--accent);
+      color: var(--accent-strong);
+      background: var(--accent-soft);
+    }
+
+    .technology-row {
+      margin-block-start: 2.1rem;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .technology-row span {
+      padding: 0.35rem 0.65rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+    }
+
+    .hero-visual {
+      position: relative;
+      min-width: 0;
+      padding: 1rem;
+      animation: hero-stage-in 840ms 120ms cubic-bezier(.2, .8, .2, 1) both;
+    }
+
+    .hero-visual::before,
+    .hero-visual::after {
+      position: absolute;
+      z-index: -1;
+      content: "";
+      border-radius: 50%;
+      filter: blur(30px);
+    }
+
+    .hero-visual::before {
+      width: 15rem;
+      height: 15rem;
+      inset: -3rem auto auto -3rem;
+      background: var(--glow-a);
+    }
+
+    .hero-visual::after {
+      width: 12rem;
+      height: 12rem;
+      inset: auto 0 -2rem auto;
+      background: var(--glow-b);
+    }
+
+    .system-window {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(24px);
+    }
+
+    .window-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.1rem;
+      border-block-end: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .window-dots {
+      display: flex;
+      gap: 0.4rem;
+    }
+
+    .window-dots span {
+      width: 0.5rem;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: color-mix(in srgb, var(--muted) 42%, transparent);
+    }
+
+    .system-stage {
+      display: grid;
+      gap: 2rem;
+      padding: 2rem;
+    }
+
+    .hero-flow-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    #hero-flow-label {
+      color: var(--text);
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-align: end;
+    }
+
+    .request-flow {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      align-items: center;
+      gap: 0.65rem;
+      padding-block: 1rem 2.8rem;
+    }
+
+    .request-flow::after {
+      position: absolute;
+      inset: auto 5% 1rem;
+      height: 2px;
+      content: "";
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+
+    .flow-node {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      justify-items: center;
+      gap: 0.45rem;
+      min-width: 0;
+      text-align: center;
+    }
+
+    .flow-node span {
+      display: grid;
+      place-items: center;
+      width: 2.6rem;
+      aspect-ratio: 1;
+      border: 1px solid var(--line);
+      border-radius: 0.9rem;
+      color: var(--accent-strong);
+      background: var(--surface-strong);
+    }
+
+    .flow-node small {
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .flow-node span,
+    .flow-node small {
+      transition: color 260ms ease, border-color 260ms ease, background 260ms ease, box-shadow 260ms ease, transform 260ms ease;
+    }
+
+    .flow-node.is-active span {
+      border-color: var(--accent);
+      color: var(--bg);
+      background: var(--accent);
+      box-shadow: 0 0 1rem color-mix(in srgb, var(--accent) 55%, transparent);
+      transform: translateY(-0.2rem);
+    }
+
+    .flow-node.is-active small {
+      color: var(--text);
+    }
+
+    .request-packet {
+      position: absolute;
+      z-index: 3;
+      inset: auto auto 0.68rem 4%;
+      width: 0.72rem;
+      aspect-ratio: 1;
+      border: 2px solid var(--surface-strong);
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0.9rem var(--accent);
+      animation: packet-travel 7s cubic-bezier(.65, 0, .35, 1) 1 both;
+    }
+
+    .lifecycle-panel {
+      display: grid;
+      gap: 1rem;
+      padding: 1.2rem;
+      border: 1px solid var(--line);
+      border-radius: 1.25rem;
+      background: color-mix(in srgb, var(--surface-strong) 72%, transparent);
+    }
+
+    .lifecycle-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .lifecycle {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.55rem;
+    }
+
+    .state {
+      padding: 0.42rem 0.7rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: transparent;
+      transition: color 280ms ease, border-color 280ms ease, background 280ms ease, transform 280ms ease;
+    }
+
+    .state.is-active {
+      border-color: var(--accent);
+      color: var(--accent-strong);
+      background: var(--accent-soft);
+      transform: translateY(-3px);
+    }
+
+    .state[data-state="PENDING"].is-active { border-color: var(--pending); color: var(--pending); }
+    .state[data-state="PROCESSING"].is-active { border-color: var(--processing); color: var(--processing); }
+    .state[data-state="SHIPPED"].is-active { border-color: var(--shipped); color: var(--shipped); }
+    .state[data-state="DELIVERED"].is-active { border-color: var(--delivered); color: var(--delivered); }
+
+    .state-arrow {
+      color: var(--muted);
+    }
+
+    .cancel-branch {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .proof-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1px;
+      overflow: hidden;
+      border-block: 1px solid var(--line);
+      background: var(--line);
+    }
+
+    .proof {
+      padding: 1.6rem;
+      background: var(--bg);
+      text-align: center;
+    }
+
+    .proof strong {
+      display: block;
+      font-size: 2rem;
+      letter-spacing: -0.04em;
+    }
+
+    .proof span {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .content-section {
+      padding-block: 7rem;
+      border-block-end: 1px solid var(--line);
+    }
+
+    .content-intro {
+      display: grid;
+      grid-template-columns: minmax(0, 0.75fr) minmax(28rem, 1.25fr);
+      gap: 4rem;
+      align-items: start;
+      margin-block-end: 3rem;
+    }
+
+    .content-intro h2 {
+      max-width: 13ch;
+      margin-block-end: 0;
+      font-size: clamp(2.7rem, 5vw, 4.8rem);
+      line-height: 1;
+      letter-spacing: -0.055em;
+    }
+
+    .content-intro p {
+      max-width: 43rem;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+
+    .fixture-identity code,
+    .command {
+      overflow-wrap: anywhere;
+      color: var(--accent-strong);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .api-explorer {
+      display: grid;
+      gap: 1.5rem;
+      padding: 1.5rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .api-tabs {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 0.6rem;
+    }
+
+    .api-tabs .button {
+      width: 100%;
+    }
+
+    .api-panel {
+      display: grid;
+      grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
+      gap: 2rem;
+      align-items: start;
+      animation: api-panel-in 360ms cubic-bezier(.2, .8, .2, 1) both;
+    }
+
+    .api-panel h3 {
+      margin-block: 0.75rem;
+      font-size: 2rem;
+      letter-spacing: -0.035em;
+    }
+
+    .api-panel p {
+      color: var(--muted);
+    }
+
+    .api-route {
+      display: inline-flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .api-method {
+      padding: 0.3rem 0.55rem;
+      border-radius: 999px;
+      color: var(--accent-strong);
+      background: var(--accent-soft);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .api-route code,
+    .method-step code {
+      overflow-wrap: anywhere;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .api-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 1.2rem;
+      background: var(--line);
+    }
+
+    .api-detail {
+      position: relative;
+      min-width: 0;
+      padding: 1rem 1rem 1.15rem;
+      background: var(--surface-strong);
+    }
+
+    .api-detail::before {
+      content: attr(data-step);
+      display: grid;
+      place-items: center;
+      width: 1.8rem;
+      aspect-ratio: 1;
+      margin-block-end: 1rem;
+      border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line));
+      border-radius: 0.55rem;
+      color: var(--accent-strong);
+      background: var(--accent-soft);
+      font-size: 0.68rem;
+      font-weight: 800;
+    }
+
+    .api-panel.is-updating .api-detail {
+      animation: story-cell-in 440ms cubic-bezier(.2, .8, .2, 1) both;
+    }
+
+    .api-panel.is-updating .api-detail:nth-child(2) {
+      animation-delay: 70ms;
+    }
+
+    .api-panel.is-updating .api-detail:nth-child(3) {
+      animation-delay: 140ms;
+    }
+
+    .api-detail span {
+      display: block;
+      margin-block-end: 0.5rem;
+      color: var(--muted);
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .api-detail strong {
+      font-size: 0.92rem;
+    }
+
+    .method-flow {
+      display: grid;
+      grid-column: 1 / -1;
+      gap: 1.3rem;
+      min-width: 0;
+      padding-block-start: 1.4rem;
+      border-block-start: 1px solid var(--line);
+    }
+
+    .method-flow-heading,
+    .method-flow-control {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .method-flow-heading strong {
+      display: block;
+      margin-block-start: 0.25rem;
+      font-size: 1.05rem;
+    }
+
+    .method-flow-control {
+      justify-content: flex-end;
+    }
+
+    #api-flow-status {
+      color: var(--accent-strong);
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .button.compact {
+      min-height: 2.25rem;
+      padding: 0.45rem 0.8rem;
+      font-size: 0.76rem;
+    }
+
+    .method-flow-track {
+      position: relative;
+      min-width: 0;
+      padding-block: 0.5rem;
+    }
+
+    .method-flow-track::before,
+    .method-flow-track::after {
+      position: absolute;
+      z-index: 0;
+      inset-block-start: 1.5rem;
+      inset-inline-start: 7%;
+      height: 2px;
+      content: "";
+    }
+
+    .method-flow-track::before {
+      width: 86%;
+      background: var(--line);
+    }
+
+    .method-flow-track::after {
+      width: var(--flow-progress);
+      background: var(--accent);
+      box-shadow: 0 0 0.8rem color-mix(in srgb, var(--accent) 55%, transparent);
+      transition: width 520ms cubic-bezier(.2, .8, .2, 1);
+    }
+
+    .method-flow-steps {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(var(--flow-count), minmax(0, 1fr));
+      gap: 0.7rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .method-step {
+      display: grid;
+      align-content: start;
+      justify-items: center;
+      gap: 0.55rem;
+      min-width: 0;
+      color: var(--muted);
+      text-align: center;
+      transition: color 300ms ease, transform 300ms ease, opacity 300ms ease;
+    }
+
+    .method-step > span {
+      display: grid;
+      place-items: center;
+      width: 2rem;
+      aspect-ratio: 1;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      color: var(--muted);
+      background: var(--surface-strong);
+      font-size: 0.7rem;
+      font-weight: 800;
+      transition: color 300ms ease, border-color 300ms ease, background 300ms ease, box-shadow 300ms ease;
+    }
+
+    .method-step code {
+      color: inherit;
+      font-size: 0.68rem;
+      font-weight: 700;
+      line-height: 1.35;
+      overflow-wrap: normal;
+      word-break: normal;
+    }
+
+    .method-step small {
+      max-width: 10rem;
+      color: var(--muted);
+      font-size: 0.72rem;
+    }
+
+    .method-step.is-complete {
+      color: var(--text);
+    }
+
+    .method-step.is-complete > span {
+      border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+      color: var(--accent-strong);
+      background: var(--accent-soft);
+    }
+
+    .method-step.is-active {
+      color: var(--accent-strong);
+      transform: translateY(-0.25rem);
+    }
+
+    .method-step.is-active > span {
+      border-color: var(--accent);
+      color: var(--bg);
+      background: var(--accent);
+      box-shadow: 0 0 1rem color-mix(in srgb, var(--accent) 55%, transparent);
+    }
+
+    .method-step.is-active small {
+      color: var(--text);
+    }
+
+    .safety-card p {
+      color: var(--muted);
+    }
+
+    .safety-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+      margin-block-start: 1rem;
+    }
+
+    .scheduler-story {
+      display: grid;
+      grid-template-columns: minmax(16rem, 0.5fr) minmax(0, 1.5fr);
+      gap: 2rem;
+      align-items: center;
+      margin-block-start: 1rem;
+      padding: 2rem;
+      border: 1px solid var(--line);
+      border-radius: 1.4rem;
+      background:
+        radial-gradient(circle at 84% 40%, var(--glow-a), transparent 24rem),
+        var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .scheduler-facts {
+      display: grid;
+      gap: 0.65rem;
+      margin-block: 1.2rem;
+    }
+
+    .scheduler-facts > span {
+      display: grid;
+      grid-template-columns: 3.7rem minmax(0, 1fr);
+      gap: 0.6rem;
+      align-items: baseline;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .scheduler-facts b {
+      color: var(--accent-strong);
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+    }
+
+    .scheduler-fact-value {
+      color: var(--muted);
+    }
+
+    .scheduler-focus {
+      display: grid;
+      gap: 1rem;
+      min-width: 0;
+    }
+
+    .scheduler-live-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    #scheduler-phase {
+      color: var(--accent-strong);
+      font-size: 0.82rem;
+    }
+
+    .scheduler-transition {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: stretch;
+      gap: 1rem;
+      min-width: 0;
+    }
+
+    .scheduler-state {
+      display: grid;
+      align-content: start;
+      gap: 0.7rem;
+      min-width: 0;
+      padding: 1.25rem;
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+      background: var(--surface-strong);
+      opacity: 0.48;
+      transform: scale(0.985);
+      transition: opacity 360ms ease, transform 360ms ease, border-color 360ms ease, box-shadow 360ms ease;
+    }
+
+    .scheduler-state.is-phase-active {
+      border-color: color-mix(in srgb, var(--accent) 48%, var(--line));
+      box-shadow: 0 0 1.6rem color-mix(in srgb, var(--accent) 14%, transparent);
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .scheduler-state > span:first-child,
+    .scheduler-action > span:first-child {
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .scheduler-state strong {
+      font-size: 1.4rem;
+      letter-spacing: -0.03em;
+    }
+
+    .scheduler-order-stack {
+      display: grid;
+      gap: 0.45rem;
+    }
+
+    .scheduler-order {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.55rem 0.65rem;
+      border: 1px solid var(--line);
+      border-radius: 0.75rem;
+      color: var(--muted);
+      background: color-mix(in srgb, var(--surface) 66%, transparent);
+      font-size: 0.76rem;
+    }
+
+    .scheduler-order b {
+      color: var(--accent-strong);
+      font-weight: 800;
+    }
+
+    .scheduler-state.is-pending > strong,
+    .scheduler-state.is-pending .scheduler-order b { color: var(--pending); }
+
+    .scheduler-state.is-processing > strong,
+    .scheduler-state.is-processing .scheduler-order b { color: var(--processing); }
+
+    .scheduler-state small,
+    .scheduler-action small {
+      color: var(--muted);
+    }
+
+    .scheduler-action {
+      position: relative;
+      display: grid;
+      place-items: center;
+      align-content: center;
+      gap: 0.55rem;
+      width: 11rem;
+      padding: 1rem;
+      border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--line));
+      border-radius: 1rem;
+      background: var(--accent-soft);
+      opacity: 0.55;
+      text-align: center;
+      transition: opacity 360ms ease, transform 360ms ease, border-color 360ms ease, box-shadow 360ms ease;
+    }
+
+    .scheduler-action.is-phase-active {
+      border-color: var(--accent);
+      box-shadow: 0 0 1.8rem color-mix(in srgb, var(--accent) 22%, transparent);
+      opacity: 1;
+      transform: translateY(-0.2rem);
+    }
+
+    .scheduler-action.is-phase-active .scheduler-clock {
+      animation: clock-tick 680ms cubic-bezier(.2, .8, .2, 1) 1 both;
+    }
+
+    .scheduler-action::before,
+    .scheduler-action::after {
+      position: absolute;
+      inset-block-start: 50%;
+      color: var(--accent-strong);
+      content: "→";
+      font-size: 1.2rem;
+      transform: translateY(-50%);
+    }
+
+    .scheduler-action::before { inset-inline-start: -1.15rem; }
+    .scheduler-action::after { inset-inline-end: -1.15rem; }
+
+    .scheduler-clock {
+      display: grid;
+      place-items: center;
+      width: 4.2rem;
+      aspect-ratio: 1;
+      border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--line));
+      border-radius: 50%;
+      color: var(--accent-strong);
+      background: var(--surface-strong);
+      box-shadow: inset 0 0 1.4rem var(--glow-a);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-weight: 800;
+    }
+
+    .scheduler-action code {
+      color: var(--accent-strong);
+      font-size: 0.68rem;
+    }
+
+    .scheduler-code-path {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.65rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .scheduler-method {
+      display: grid;
+      gap: 0.35rem;
+      min-width: 0;
+      padding: 0.75rem;
+      border-block-start: 2px solid var(--line);
+      color: var(--muted);
+      opacity: 0.48;
+      transition: color 320ms ease, opacity 320ms ease, border-color 320ms ease, transform 320ms ease;
+    }
+
+    .scheduler-method code {
+      overflow-wrap: normal;
+      word-break: normal;
+      color: inherit;
+      font-size: 0.7rem;
+    }
+
+    .scheduler-method small {
+      color: var(--muted);
+      font-size: 0.7rem;
+    }
+
+    .scheduler-method.is-complete {
+      border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+      color: var(--text);
+      opacity: 0.8;
+    }
+
+    .scheduler-method.is-active {
+      border-color: var(--accent);
+      color: var(--accent-strong);
+      opacity: 1;
+      transform: translateY(-0.15rem);
+    }
+
+    .scheduler-result {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.85rem 1rem;
+      border-inline-start: 3px solid var(--accent);
+      color: var(--muted);
+      background: var(--accent-soft);
+      font-size: 0.82rem;
+    }
+
+    .scheduler-result strong {
+      color: var(--accent-strong);
+    }
+
+    #scheduler-result-note {
+      text-align: end;
+    }
+
+    .safety-card {
+      display: grid;
+      align-content: start;
+      padding: 1.5rem;
+      border: 1px solid var(--line);
+      border-radius: 1.4rem;
+      background: color-mix(in srgb, var(--surface) 70%, transparent);
+      transition: border-color 220ms ease, transform 220ms ease;
+    }
+
+    .safety-card:hover,
+    .verification-step:hover {
+      border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+      transform: translateY(-3px);
+    }
+
+    .transaction-graph {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: 0.65rem;
+      margin-block-start: 1rem;
+    }
+
+    .transaction-side,
+    .race-result {
+      padding: 0.8rem;
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+      text-align: center;
+    }
+
+    .transaction-side small,
+    .race-worker small,
+    .race-result small {
+      color: var(--muted);
+    }
+
+    .transaction-gate {
+      display: grid;
+      gap: 0.25rem;
+      color: var(--accent-strong);
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .rollback-note {
+      margin-block-start: 0.75rem;
+      color: var(--muted);
+      font-size: 0.76rem;
+      text-align: center;
+    }
+
+    .race-graph {
+      display: grid;
+      gap: 0.75rem;
+      margin-block-start: 1rem;
+    }
+
+    .race-inputs,
+    .race-results {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.65rem;
+    }
+
+    .race-worker {
+      padding: 0.8rem;
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+      text-align: center;
+    }
+
+    .race-gate {
+      padding: 0.7rem;
+      border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+      border-radius: 0.8rem;
+      color: var(--accent-strong);
+      background: var(--accent-soft);
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .race-result:first-child {
+      color: var(--accent-strong);
+    }
+
+    .race-note {
+      color: var(--muted);
+      font-size: 0.74rem;
+      text-align: center;
+    }
+
+    .safety-grid.is-visible .transaction-side:first-child,
+    .safety-grid.is-visible .race-inputs {
+      animation: explain-stage 520ms ease both;
+    }
+
+    .safety-grid.is-visible .transaction-gate,
+    .safety-grid.is-visible .race-gate {
+      animation: explain-stage 520ms 420ms ease both;
+    }
+
+    .safety-grid.is-visible .transaction-side:last-child,
+    .safety-grid.is-visible .race-results {
+      animation: explain-stage 520ms 840ms ease both;
+    }
+
+    .fixture-summary {
+      display: grid;
+      gap: 0.7rem;
+      align-self: center;
+    }
+
+    .fixture-summary > span {
+      display: grid;
+      grid-template-columns: 5.4rem minmax(0, 1fr);
+      gap: 0.75rem;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .fixture-summary b {
+      color: var(--accent-strong);
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+    }
+
+    .fixture-summary code {
+      color: var(--text);
+    }
+
+    .fixture-summary-value {
+      color: var(--muted);
+    }
+
+    .fixture-scenarios {
+      display: grid;
+      gap: 0;
+      border-block-start: 1px solid var(--line);
+    }
+
+    .fixture-row {
+      display: grid;
+      grid-template-columns: minmax(14rem, 1.35fr) minmax(7.5rem, 0.55fr) auto minmax(9rem, 0.7fr) auto minmax(9rem, 0.7fr);
+      gap: 1rem;
+      align-items: center;
+      padding-block: 1.15rem;
+      border-block-end: 1px solid var(--line);
+    }
+
+    .fixture-identity,
+    .fixture-state,
+    .fixture-outcome,
+    .fixture-action {
+      display: grid;
+      align-content: center;
+      gap: 0.3rem;
+      min-width: 0;
+    }
+
+    .fixture-identity code {
+      font-size: 0.68rem;
+    }
+
+    .fixture-state > span,
+    .fixture-outcome > span,
+    .fixture-action > span {
+      color: var(--muted);
+      font-size: 0.64rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .fixture-state b,
+    .fixture-outcome b,
+    .fixture-action b {
+      font-size: 0.8rem;
+    }
+
+    .fixture-outcome small,
+    .fixture-action small {
+      color: var(--muted);
+      font-size: 0.7rem;
+    }
+
+    .fixture-arrow {
+      color: var(--accent-strong);
+      font-size: 1.05rem;
+    }
+
+    .fixture-action {
+      width: 100%;
+      padding: 0.75rem 0.85rem;
+      border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--line));
+      border-radius: 0.85rem;
+      color: var(--text);
+      background: var(--accent-soft);
+      cursor: pointer;
+      text-align: start;
+      transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+    }
+
+    .fixture-action:hover {
+      border-color: var(--accent);
+      background: color-mix(in srgb, var(--accent-soft) 72%, var(--surface-strong));
+      transform: translateY(-2px);
+    }
+
+    #demo.is-visible .fixture-row {
+      animation: fixture-row-in 540ms var(--fixture-delay) cubic-bezier(.2, .8, .2, 1) both;
+    }
+
+    .status {
+      width: max-content;
+      padding: 0.35rem 0.65rem;
+      border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--line));
+      border-radius: 999px;
+      color: var(--accent-strong);
+      background: var(--accent-soft);
+      font-size: 0.78rem;
+    }
+
+    .status.pending { border-color: var(--pending); color: var(--pending); background: color-mix(in srgb, var(--pending) 10%, transparent); }
+    .status.processing { border-color: var(--processing); color: var(--processing); background: color-mix(in srgb, var(--processing) 10%, transparent); }
+    .status.shipped { border-color: var(--shipped); color: var(--shipped); background: color-mix(in srgb, var(--shipped) 10%, transparent); }
+    .status.delivered { border-color: var(--delivered); color: var(--delivered); background: color-mix(in srgb, var(--delivered) 10%, transparent); }
+    .status.cancelled { border-color: var(--cancelled); color: var(--cancelled); background: color-mix(in srgb, var(--cancelled) 10%, transparent); }
+
+    .verification-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .verification-step {
+      position: relative;
+      display: grid;
+      align-content: start;
+      gap: 0.85rem;
+      padding: 1.4rem;
+      border: 1px solid var(--line);
+      border-radius: 1.3rem;
+      background: var(--surface);
+      transition: border-color 220ms ease, transform 220ms ease;
+    }
+
+    #verification.is-visible .verification-step {
+      animation: verification-step-in 620ms calc(var(--verification-step) * 180ms) cubic-bezier(.2, .8, .2, 1) both;
+    }
+
+    .verification-step::after {
+      position: absolute;
+      inset: 1.25rem 1.25rem auto auto;
+      width: 0.55rem;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      content: "";
+      background: var(--accent);
+      box-shadow: 0 0 0.9rem var(--accent);
+      opacity: 0;
+    }
+
+    #verification.is-visible .verification-step::after {
+      animation: verification-signal 480ms calc(420ms + (var(--verification-step) * 180ms)) ease both;
+    }
+
+    .verification-step p {
+      margin-block-end: 0;
+      color: var(--muted);
+    }
+
+    .command {
+      display: block;
+      padding: 0.8rem;
+      border: 1px solid var(--line);
+      border-radius: 0.8rem;
+      background: var(--surface-strong);
+    }
+
+    .verification-outcome {
+      margin-block-start: auto;
+      padding-block-start: 0.8rem;
+      border-block-start: 1px solid var(--line);
+      color: var(--accent-strong);
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .tour-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+      margin-block-start: 2rem;
+    }
+
+    .tour-card {
+      display: grid;
+      align-content: space-between;
+      min-height: 20rem;
+      padding: 2rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      text-decoration: none;
+      transition: transform 220ms ease, border-color 220ms ease;
+    }
+
+    .tour-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-5px);
+    }
+
+    .tour-card h3 {
+      margin-block: 0.7rem;
+      font-size: 2rem;
+      letter-spacing: -0.035em;
+    }
+
+    .tour-card p {
+      max-width: 33rem;
+      color: var(--muted);
+    }
+
+    .tour-link {
+      color: var(--accent-strong);
+      font-weight: 700;
+    }
+
+    .explore-section {
+      padding-block: 7rem 4rem;
+    }
+
+    .section-heading {
+      display: grid;
+      grid-template-columns: minmax(0, 0.8fr) minmax(25rem, 1.2fr);
+      gap: 4rem;
+      align-items: end;
+      margin-block-end: 2rem;
+    }
+
+    .section-heading h2 {
+      max-width: 12ch;
+      margin-block-end: 0;
+      font-size: clamp(2.5rem, 5vw, 4.5rem);
+      line-height: 1;
+      letter-spacing: -0.055em;
+    }
+
+    .section-heading p {
+      max-width: 42rem;
+      margin-block-end: 0;
+      color: var(--muted);
+    }
+
+    .site-footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 2rem;
+      padding-block: 2.5rem 3rem;
+      border-block-start: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(1.5rem);
+      transition: opacity 640ms ease, transform 640ms cubic-bezier(.2, .8, .2, 1);
+    }
+
+    .reveal.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @keyframes hero-copy-in {
+      from { opacity: 0; transform: translateY(1.5rem); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes hero-stage-in {
+      from { opacity: 0; transform: translateX(2rem) scale(0.97); }
+      to { opacity: 1; transform: translateX(0) scale(1); }
+    }
+
+    @keyframes packet-travel {
+      0%, 8% { left: 4%; }
+      24% { left: 25%; }
+      44% { left: 47%; }
+      64% { left: 69%; }
+      84%, 100% { left: 94%; }
+    }
+
+    @keyframes api-panel-in {
+      from { opacity: 0.25; transform: translateX(0.8rem); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes story-cell-in {
+      from { opacity: 0.25; transform: translateY(0.55rem); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes clock-tick {
+      0% { transform: scale(0.94); }
+      55% { transform: scale(1.08); box-shadow: inset 0 0 1.4rem var(--glow-a), 0 0 1.6rem var(--glow-a); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes explain-stage {
+      from { opacity: 0.25; transform: translateY(0.55rem); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fixture-row-in {
+      from { opacity: 0; transform: translateX(-0.8rem); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes verification-step-in {
+      from { opacity: 0.25; transform: translateY(0.8rem); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes verification-signal {
+      0% { opacity: 0; transform: scale(0.4); }
+      55% { opacity: 1; transform: scale(1.35); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    @media (min-width: 761px) {
+      .hero,
+      main > .content-section,
+      main > .explore-section {
+        min-block-size: calc(100vh - 5.25rem);
+        min-block-size: calc(100svh - 5.25rem);
+      }
+
+      main > .content-section {
+        padding-block: clamp(9rem, 15vh, 12rem);
+      }
+
+      #project,
+      #verification,
+      #explore {
+        display: grid;
+        align-content: center;
+      }
+
+      #scheduler {
+        min-block-size: 100vh;
+        min-block-size: 100svh;
+      }
+
+      .safety-grid {
+        min-block-size: calc(100vh - 5.25rem);
+        min-block-size: calc(100svh - 5.25rem);
+        align-content: center;
+        margin-block-start: clamp(5rem, 10vh, 8rem);
+      }
+    }
+
+    @media (max-width: 1100px) {
+      .hero,
+      .scheduler-story {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .hero {
+        gap: 2rem;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .hero,
+      .section-heading,
+      .content-intro,
+      .api-panel,
+      .scheduler-story {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .hero {
+        gap: 2rem;
+      }
+
+      h1 {
+        max-width: 15ch;
+      }
+
+      .site-nav {
+        display: none;
+      }
+
+      .verification-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .api-summary-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .api-tabs {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .fixture-row {
+        grid-template-columns: minmax(13rem, 1fr) minmax(7rem, 0.5fr) auto minmax(9rem, 0.7fr) auto minmax(9rem, 0.7fr);
+        gap: 0.65rem;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+      }
+
+      .reveal {
+        opacity: 1;
+        transform: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header shell">
+    <a class="brand" href="#top" aria-label="Order System home">
+      <span class="brand-mark" aria-hidden="true">O</span>
+      <span>Order System</span>
+    </a>
+    <nav class="site-nav" aria-label="Primary navigation">
+      <a href="#project">Overview</a>
+      <a href="#api-explorer">API flows</a>
+      <a href="#scheduler">Scheduler</a>
+      <a href="#demo">Seed data</a>
+      <a href="#verification">Verification</a>
+      <a href="README.md">Documentation</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section id="top" class="hero shell" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <span class="eyebrow">Java 21 · Spring Boot · PostgreSQL</span>
+        <h1 id="hero-title">Order processing with explicit lifecycle control.</h1>
+        <p class="hero-lead">
+          A Java 21 and Spring Boot service for creating, retrieving, listing,
+          advancing, and cancelling orders—with transactional PostgreSQL writes
+          that protect state changes under concurrency.
+        </p>
+        <div class="hero-actions">
+          <a class="button primary" href="#project">Review the implementation <span aria-hidden="true">↓</span></a>
+          <a class="button" href="#api-explorer">Explore the API flows</a>
+        </div>
+        <div class="technology-row" aria-label="Key implementation choices">
+          <span>5 HTTP endpoints</span>
+          <span>Atomic transitions</span>
+          <span>UTC five-minute scheduler</span>
+          <span>Flyway-owned schema</span>
+        </div>
+      </div>
+
+      <div class="hero-visual" aria-label="Animated request and order lifecycle overview">
+        <div class="system-window">
+          <div class="window-bar">
+            <div class="window-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+            <span>ORDER PROCESSING / SYSTEM OVERVIEW</span>
+          </div>
+          <div class="system-stage">
+            <div>
+              <div class="hero-flow-heading">
+                <span class="visual-label">HTTP request → committed response</span>
+                <span id="hero-flow-label">Request accepted</span>
+              </div>
+              <div class="request-flow" aria-label="Caller request travels through HTTP, application, PostgreSQL, and response">
+                <div class="flow-node"><span>01</span><small>Caller</small></div>
+                <div class="flow-node"><span>02</span><small>HTTP API</small></div>
+                <div class="flow-node"><span>03</span><small>Application</small></div>
+                <div class="flow-node"><span>04</span><small>PostgreSQL</small></div>
+                <div class="flow-node"><span>05</span><small>Response</small></div>
+                <span class="request-packet" aria-hidden="true"></span>
+              </div>
+            </div>
+
+            <div class="lifecycle-panel">
+              <div class="lifecycle-title">
+                <span>ORDER LIFECYCLE</span>
+                <span id="active-state-label">PENDING · created</span>
+              </div>
+              <div class="lifecycle" aria-label="Pending advances to processing, shipped, and delivered; pending may instead be cancelled">
+                <span class="state is-active" data-state="PENDING">PENDING</span>
+                <span class="state-arrow" aria-hidden="true">→</span>
+                <span class="state" data-state="PROCESSING">PROCESSING</span>
+                <span class="state-arrow" aria-hidden="true">→</span>
+                <span class="state" data-state="SHIPPED">SHIPPED</span>
+                <span class="state-arrow" aria-hidden="true">→</span>
+                <span class="state" data-state="DELIVERED">DELIVERED</span>
+              </div>
+              <div class="cancel-branch">PENDING may branch to CANCELLED. No order is deleted.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="overview" class="proof-strip" aria-label="Assignment evidence">
+      <div class="proof"><strong>5</strong><span>versioned HTTP endpoints</span></div>
+      <div class="proof"><strong>5</strong><span>defined order states</span></div>
+      <div class="proof"><strong>108</strong><span>tests in the current full suite</span></div>
+    </section>
+
+    <section id="project" class="content-section shell reveal" aria-labelledby="project-title">
+      <div class="content-intro">
+        <div>
+          <span class="section-kicker">Service scope</span>
+          <h2 id="project-title">Five operations define the service boundary.</h2>
+        </div>
+        <p>
+          Create an order, retrieve one, list a bounded page, advance one legal
+          fulfilment step, or cancel while the order is still PENDING.
+        </p>
+      </div>
+
+      <div id="api-explorer" class="api-explorer" aria-labelledby="api-explorer-title">
+        <div class="api-tabs" role="group" aria-label="Choose an API to understand">
+          <button type="button" class="button" data-api="create" aria-pressed="true">POST · Create</button>
+          <button type="button" class="button" data-api="get" aria-pressed="false">GET · One order</button>
+          <button type="button" class="button" data-api="list" aria-pressed="false">GET · List</button>
+          <button type="button" class="button" data-api="advance" aria-pressed="false">PATCH · Status</button>
+          <button type="button" class="button" data-api="cancel" aria-pressed="false">POST · Cancel</button>
+        </div>
+        <div id="api-panel" class="api-panel is-updating">
+          <div>
+            <div class="api-route"><span id="api-method" class="api-method">POST</span><code id="api-path">/api/v1/orders</code></div>
+            <h3 id="api-explorer-title">Create a new order</h3>
+            <p id="api-purpose">Save one independent order containing 1–100 immutable product lines.</p>
+          </div>
+          <div class="api-summary-grid" aria-live="polite">
+            <div class="api-detail" data-step="01"><span>Request</span><strong id="api-input">JSON body with 1–100 productId and quantity lines</strong></div>
+            <div class="api-detail" data-step="02"><span>Processing</span><strong id="api-action">Validate rules and save the aggregate in one transaction</strong></div>
+            <div class="api-detail" data-step="03"><span>Response and effect</span><strong id="api-result">201 Created · new UUID · status PENDING</strong></div>
+          </div>
+          <section id="api-method-flow" class="method-flow" data-animate aria-labelledby="method-flow-title">
+            <div class="method-flow-heading">
+              <div>
+                <span class="section-kicker">Active code path</span>
+                <strong id="method-flow-title">Create order execution</strong>
+              </div>
+              <div class="method-flow-control">
+                <span id="api-flow-status">Accepting the HTTP request</span>
+                <button id="replay-api-flow" type="button" class="button compact">Replay flow</button>
+              </div>
+            </div>
+            <div id="method-flow-track" class="method-flow-track" style="--flow-count: 7; --flow-progress: 0%;">
+              <ol id="api-flow-steps" class="method-flow-steps" aria-label="Create order method sequence">
+                <li class="method-step is-active"><span>01</span><code>OrderController.create()</code><small>Accept validated product lines</small></li>
+                <li class="method-step"><span>02</span><code>ApiMapper.toData()</code><small>Convert request into command</small></li>
+                <li class="method-step"><span>03</span><code>OrderService.create()</code><small>Open one create transaction</small></li>
+                <li class="method-step"><span>04</span><code>validateCreate()</code><small>Enforce all order rules</small></li>
+                <li class="method-step"><span>05</span><code>OrderRepository.save()</code><small>Persist order and items</small></li>
+                <li class="method-step"><span>06</span><code>DataMapper.toDetails()</code><small>Map the saved aggregate</small></li>
+                <li class="method-step"><span>07</span><code>ApiMapper.toResponse()</code><small>Build the public response</small></li>
+              </ol>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section id="how-it-works" class="content-section shell reveal" aria-labelledby="reliability-title">
+      <div class="content-intro">
+        <div>
+          <span class="section-kicker">Reliability controls</span>
+          <h2 id="reliability-title">State changes remain valid under concurrent work.</h2>
+        </div>
+        <p>
+          Transactions protect complete aggregates. Conditional PostgreSQL
+          updates ensure competing workers cannot overwrite a newer state.
+        </p>
+      </div>
+
+      <section id="scheduler" class="scheduler-story" data-animate aria-labelledby="scheduler-title">
+        <div>
+          <span class="section-kicker">Background automation</span>
+          <h3 id="scheduler-title">The scheduler promotes every currently PENDING order.</h3>
+          <div class="scheduler-facts">
+            <span><b>WHEN</b> Every UTC five-minute boundary</span>
+            <span><b>MATCH</b> Saved status is PENDING</span>
+            <span><b>DEMO</b><span class="scheduler-fact-value"><code>./dev</code> pauses the scheduler</span></span>
+          </div>
+          <button id="replay-scheduler" type="button" class="button compact">Replay transition</button>
+        </div>
+        <div class="scheduler-focus">
+          <div class="scheduler-live-heading">
+            <span class="section-kicker">Scheduler transition</span>
+            <strong id="scheduler-phase">Waiting for the 10:05 UTC tick</strong>
+          </div>
+          <div class="scheduler-transition" role="img" aria-label="Before the five-minute tick three orders are pending. At 10:05 UTC the scheduler performs one conditional bulk database update. After commit, all three orders are processing.">
+            <div id="scheduler-pending-state" class="scheduler-state is-pending is-phase-active">
+              <span>Before the tick</span>
+              <strong>3 × PENDING</strong>
+              <div class="scheduler-order-stack" aria-hidden="true">
+                <div class="scheduler-order"><span>Order A</span><b>PENDING</b></div>
+                <div class="scheduler-order"><span>Order B</span><b>PENDING</b></div>
+                <div class="scheduler-order"><span>Order C</span><b>PENDING</b></div>
+              </div>
+              <small>All three rows match the query.</small>
+            </div>
+            <div id="scheduler-action" class="scheduler-action">
+              <span>One atomic action</span>
+              <span class="scheduler-clock">10:05</span>
+              <strong>UTC tick</strong>
+              <code>WHERE status = 'PENDING'</code>
+            </div>
+            <div id="scheduler-processing-state" class="scheduler-state is-processing">
+              <span>After commit</span>
+              <strong>3 × PROCESSING</strong>
+              <div class="scheduler-order-stack" aria-hidden="true">
+                <div class="scheduler-order"><span>Order A</span><b>PROCESSING</b></div>
+                <div class="scheduler-order"><span>Order B</span><b>PROCESSING</b></div>
+                <div class="scheduler-order"><span>Order C</span><b>PROCESSING</b></div>
+              </div>
+              <small>Other saved states remain unchanged.</small>
+            </div>
+          </div>
+          <ol class="scheduler-code-path" aria-label="Scheduler method sequence">
+            <li class="scheduler-method" data-scheduler-step="0"><code>OrderScheduler.<wbr>processPendingOrders()</code><small>Start timed run</small></li>
+            <li class="scheduler-method" data-scheduler-step="1"><code>OrderProcessor.<wbr>processPending()</code><small>Open one transaction</small></li>
+            <li class="scheduler-method" data-scheduler-step="2"><code>OrderRepository.<wbr>processPending()</code><small>Run one bulk update</small></li>
+          </ol>
+          <div class="scheduler-result" aria-live="polite"><span>Database result</span><strong>affectedCount = <span id="scheduler-count">0</span></strong><span id="scheduler-result-note">Awaiting the scheduled run</span></div>
+        </div>
+      </section>
+
+      <div class="safety-grid" data-animate>
+        <article class="safety-card">
+          <span class="section-kicker">Transaction safety</span>
+          <h3>All items commit together.</h3>
+          <p>Creating an order saves the parent and every item in one transaction. Any failure rolls the complete aggregate back.</p>
+          <div class="transaction-graph" role="img" aria-label="An order and all its items enter one transaction and are committed together; any failure rolls everything back">
+            <div class="transaction-side"><strong>ORDER + ITEMS</strong><br><small>one aggregate</small></div>
+            <div class="transaction-gate"><span aria-hidden="true">→</span><span>ONE<br>TRANSACTION</span><span aria-hidden="true">→</span></div>
+            <div class="transaction-side"><strong>COMMIT ALL</strong><br><small>one committed aggregate</small></div>
+          </div>
+          <div class="rollback-note">Any failure → rollback the parent and every item</div>
+        </article>
+        <article class="safety-card">
+          <span class="section-kicker">Concurrency safety</span>
+          <h3>Two workers, one valid winner.</h3>
+          <p>Every mutation includes the expected current status in its database update. A zero-row result becomes a clear missing-or-conflict decision.</p>
+          <div class="race-graph" role="img" aria-label="Cancellation and scheduler race to update the same pending UUID; PostgreSQL changes one row for the winner and zero rows for the loser">
+            <div class="race-inputs">
+              <div class="race-worker">Cancel request<br><small>PENDING → CANCELLED</small></div>
+              <div class="race-worker">Scheduler tick<br><small>PENDING → PROCESSING</small></div>
+            </div>
+            <div class="race-gate">SAME UUID · UPDATE WHERE status = 'PENDING'</div>
+            <div class="race-results">
+              <div class="race-result"><strong>WINNER</strong><br><small>1 row changed</small></div>
+              <div class="race-result"><strong>LOSER</strong><br><small>0 rows changed</small></div>
+            </div>
+            <div class="race-note">API loser → 409 conflict · scheduler loser → affectedCount 0</div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="demo" class="content-section shell reveal" aria-labelledby="demo-title">
+      <div class="content-intro">
+        <div>
+          <span class="section-kicker">Seeded API scenarios</span>
+          <h2 id="demo-title">Five fixtures cover the complete lifecycle.</h2>
+        </div>
+        <div class="fixture-summary" aria-label="Seed data behavior">
+          <span><b>RESTART</b><span class="fixture-summary-value"><code>./dev</code> restores the exact IDs</span></span>
+          <span><b>COVERAGE</b><span class="fixture-summary-value">One fixture in every state</span></span>
+          <span><b>STABILITY</b><span class="fixture-summary-value">Scheduler paused in demo</span></span>
+        </div>
+      </div>
+
+      <div class="fixture-scenarios" aria-label="Seeded order API scenarios">
+        <article class="fixture-row" style="--fixture-delay: 0ms;">
+          <div class="fixture-identity"><strong>iPhone 15 Pro bundle</strong><code>b767916d-666a-53a6-b182-656022d8e0d6</code></div>
+          <div class="fixture-state"><span>Current</span><b class="status pending">PENDING</b></div><span class="fixture-arrow" aria-hidden="true">→</span>
+          <button type="button" class="fixture-action" data-fixture-api="cancel"><span>Review flow</span><b>POST cancel</b><small>Open API explanation</small></button><span class="fixture-arrow" aria-hidden="true">→</span>
+          <div class="fixture-outcome"><span>Expected</span><b>CANCELLED</b><small>200 · row preserved</small></div>
+        </article>
+        <article class="fixture-row" style="--fixture-delay: 90ms;">
+          <div class="fixture-identity"><strong>MacBook Air M3</strong><code>d0525816-0b27-5373-9c8c-43f50d394dd5</code></div>
+          <div class="fixture-state"><span>Current</span><b class="status processing">PROCESSING</b></div><span class="fixture-arrow" aria-hidden="true">→</span>
+          <button type="button" class="fixture-action" data-fixture-api="advance"><span>Review flow</span><b>PATCH SHIPPED</b><small>Open API explanation</small></button><span class="fixture-arrow" aria-hidden="true">→</span>
+          <div class="fixture-outcome"><span>Expected</span><b>SHIPPED</b><small>200 · next legal state</small></div>
+        </article>
+        <article class="fixture-row" style="--fixture-delay: 180ms;">
+          <div class="fixture-identity"><strong>AirPods Pro (2nd gen)</strong><code>dec7cac1-0794-5586-851d-e2eb74c15602</code></div>
+          <div class="fixture-state"><span>Current</span><b class="status shipped">SHIPPED</b></div><span class="fixture-arrow" aria-hidden="true">→</span>
+          <button type="button" class="fixture-action" data-fixture-api="advance"><span>Review flow</span><b>PATCH DELIVERED</b><small>Open API explanation</small></button><span class="fixture-arrow" aria-hidden="true">→</span>
+          <div class="fixture-outcome"><span>Expected</span><b>DELIVERED</b><small>200 · fulfilment complete</small></div>
+        </article>
+        <article class="fixture-row" style="--fixture-delay: 270ms;">
+          <div class="fixture-identity"><strong>Apple Watch Series 9</strong><code>b91d43af-ebd0-5b33-ad31-8bb16f1f5862</code></div>
+          <div class="fixture-state"><span>Current</span><b class="status delivered">DELIVERED</b></div><span class="fixture-arrow" aria-hidden="true">→</span>
+          <button type="button" class="fixture-action" data-fixture-api="advance"><span>Review flow</span><b>PATCH PROCESSING</b><small>Open API explanation</small></button><span class="fixture-arrow" aria-hidden="true">→</span>
+          <div class="fixture-outcome"><span>Expected</span><b>NO CHANGE</b><small>409 · terminal state</small></div>
+        </article>
+        <article class="fixture-row" style="--fixture-delay: 360ms;">
+          <div class="fixture-identity"><strong>iPad Air M2</strong><code>469983cb-e05b-5f26-b568-edc512fb3818</code></div>
+          <div class="fixture-state"><span>Current</span><b class="status cancelled">CANCELLED</b></div><span class="fixture-arrow" aria-hidden="true">→</span>
+          <button type="button" class="fixture-action" data-fixture-api="get"><span>Review flow</span><b>GET by ID</b><small>Open API explanation</small></button><span class="fixture-arrow" aria-hidden="true">→</span>
+          <div class="fixture-outcome"><span>Expected</span><b>CANCELLED</b><small>200 · stored row returned</small></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="verification" class="content-section shell reveal" aria-labelledby="verification-title">
+      <div class="content-intro">
+        <div>
+          <span class="section-kicker">Verification workflow</span>
+          <h2 id="verification-title">Run the service and reproduce each result.</h2>
+        </div>
+        <p>
+          Start the seeded environment, exercise the executable OpenAPI contract,
+          then run the complete PostgreSQL-backed test suite.
+        </p>
+      </div>
+
+      <div class="verification-grid">
+        <article class="verification-step" style="--verification-step: 0;"><span class="section-kicker">1 · Start service</span><code class="command">./dev</code><p>Starts local Supabase, applies Flyway migrations, restores five fixtures, and boots the API.</p><span class="verification-outcome">Ready → seeded API on port 8080</span></article>
+        <article class="verification-step" style="--verification-step: 1;"><span class="section-kicker">2 · Exercise contract</span><code class="command">http://127.0.0.1:8080/swagger-ui.html</code><p>Execute all five routes against the exact UUIDs shown above and inspect formatted API responses backed by PostgreSQL.</p><span class="verification-outcome">Inspect → request, response, and state effect</span></article>
+        <article class="verification-step" style="--verification-step: 2;"><span class="section-kicker">3 · Run full suite</span><code class="command">cd backend/ordersystem &amp;&amp; ./mvnw clean verify</code><p>Runs 81 fast/API tests and 27 PostgreSQL integration tests, including race and coverage gates.</p><span class="verification-outcome">Complete → 108 automated tests</span></article>
+      </div>
+    </section>
+
+    <section id="explore" class="explore-section shell reveal" aria-labelledby="explore-title">
+      <div class="section-heading">
+        <div>
+          <span class="section-kicker">Continue from here</span>
+          <h2 id="explore-title">Inspect the running API and its technical documentation.</h2>
+        </div>
+        <p>
+          Use Swagger for executable requests and the indexed documentation for
+          the exact contract, architecture, data model, and test strategy.
+        </p>
+      </div>
+      <div class="tour-grid">
+        <a class="tour-card" href="http://127.0.0.1:8080/swagger-ui.html">
+          <div><span class="section-kicker">Requires ./dev</span><h3>Execute the APIs</h3><p>Run the real create, retrieve, list, status, and cancellation requests against the seeded PostgreSQL data.</p></div>
+          <span class="tour-link">Open Swagger UI →</span>
+        </a>
+        <a class="tour-card" href="docs/INDEX.md">
+          <div><span class="section-kicker">Source of truth</span><h3>Read the engineering decisions</h3><p>Follow the API contract, architecture, low-level design, data model, testing strategy, and concurrency decision records.</p></div>
+          <span class="tour-link">Open the documentation index →</span>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer shell">
+    <span>Order Processing System · Interactive technical overview</span>
+    <span>Repository source and indexed documentation remain authoritative.</span>
+  </footer>
+
+  <script>
+    (() => {
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const apis = {
+        create: {
+          method: "POST",
+          path: "/api/v1/orders",
+          title: "Create a new order",
+          purpose: "Save one independent order containing 1–100 immutable product lines.",
+          input: "JSON body · 1–100 lines · productId and positive quantity",
+          action: "Validate, map, and commit the order plus every item in one transaction",
+          result: "201 Created · new UUID · status PENDING",
+          flow: [
+            ["OrderController.create()", "Accept the validated request"],
+            ["ApiMapper.toData()", "Map the request DTO"],
+            ["OrderService.create()", "Start the create transaction"],
+            ["validateCreate()", "Enforce aggregate rules"],
+            ["OrderRepository.save()", "Persist order and items"],
+            ["DataMapper.toDetails()", "Map the saved aggregate"],
+            ["ApiMapper.toResponse()", "Return the public order"]
+          ]
+        },
+        get: {
+          method: "GET",
+          path: "/api/v1/orders/{orderId}",
+          title: "Retrieve one complete order",
+          purpose: "Read the current status, submitted items, and UTC timestamps for one known UUID.",
+          input: "Path parameter · one order UUID",
+          action: "Load the parent and all items inside a read-only transaction",
+          result: "200 OK · complete order returned · no saved state changes",
+          flow: [
+            ["OrderController.get()", "Accept the order UUID"],
+            ["OrderService.get()", "Open a read-only transaction"],
+            ["OrderRepository.findDetailById()", "Load order and items"],
+            ["DataMapper.toDetails()", "Build application data"],
+            ["ApiMapper.toResponse()", "Return the public order"]
+          ]
+        },
+        list: {
+          method: "GET",
+          path: "/api/v1/orders",
+          title: "Browse a bounded page",
+          purpose: "Return a bounded, deterministic page of order summaries, optionally filtered by status.",
+          input: "Optional query · status, page, and size",
+          action: "Validate filters and query only lightweight summary fields",
+          result: "200 OK · bounded page returned · no saved state changes",
+          flow: [
+            ["OrderController.list()", "Accept raw query parameters"],
+            ["parsePageQuery()", "Reject invalid or repeated values"],
+            ["OrderService.list()", "Apply paging and status rules"],
+            ["findSummaryPage() / findSummaryPageByStatus()", "Choose unfiltered or status-filtered query"],
+            ["DataMapper.toPage()", "Build page metadata"],
+            ["ApiMapper.toResponse()", "Return the public page"]
+          ]
+        },
+        advance: {
+          method: "PATCH",
+          path: "/api/v1/orders/{orderId}/status",
+          title: "Advance exactly one fulfilment step",
+          purpose: "Move forward only when the saved state is the required predecessor.",
+          input: "Path UUID + JSON target: PROCESSING, SHIPPED, or DELIVERED",
+          action: "Derive the required predecessor, then update only if that status is still stored",
+          result: "200 OK after one legal step · otherwise 404 or 409",
+          flow: [
+            ["OrderController.updateStatus()", "Accept UUID and target status"],
+            ["OrderService.updateStatus()", "Parse the requested target"],
+            ["OrderStatus.requiredPredecessorForManualTarget()", "Derive the only legal source"],
+            ["OrderService.transition()", "Run the guarded mutation"],
+            ["OrderRepository.updateStatusIfExpected()", "Update UUID plus expected status"],
+            ["OrderRepository.findDetailById()", "Reload the updated aggregate"],
+            ["DataMapper.toDetails()", "Map persistence to application data"],
+            ["ApiMapper.toResponse()", "Build the updated public response"]
+          ]
+        },
+        cancel: {
+          method: "POST",
+          path: "/api/v1/orders/{orderId}/cancel",
+          title: "Cancel before processing starts",
+          purpose: "Change a PENDING order to CANCELLED without deleting its stored record.",
+          input: "Path parameter · one order UUID · no request body",
+          action: "Update only when the database still stores status PENDING",
+          result: "200 OK · status CANCELLED · otherwise 404 or 409",
+          flow: [
+            ["OrderController.cancel()", "Reject every non-empty body"],
+            ["OrderService.cancel()", "Require the PENDING source state"],
+            ["OrderService.transition()", "Run the guarded mutation"],
+            ["OrderRepository.updateStatusIfExpected()", "Change PENDING to CANCELLED"],
+            ["OrderRepository.findDetailById()", "Reload the updated aggregate"],
+            ["DataMapper.toDetails()", "Map persistence to application data"],
+            ["ApiMapper.toResponse()", "Build the updated public response"]
+          ]
+        }
+      };
+
+      const clearTimers = (timers) => {
+        timers.forEach((timer) => window.clearTimeout(timer));
+        timers.length = 0;
+      };
+
+      const apiButtons = Array.from(document.querySelectorAll("[data-api]"));
+      const apiPanel = document.getElementById("api-panel");
+      const apiMethod = document.getElementById("api-method");
+      const apiPath = document.getElementById("api-path");
+      const apiTitle = document.getElementById("api-explorer-title");
+      const apiPurpose = document.getElementById("api-purpose");
+      const apiInput = document.getElementById("api-input");
+      const apiAction = document.getElementById("api-action");
+      const apiResult = document.getElementById("api-result");
+      const methodFlowTitle = document.getElementById("method-flow-title");
+      const methodFlowTrack = document.getElementById("method-flow-track");
+      const apiFlowSteps = document.getElementById("api-flow-steps");
+      const apiFlowStatus = document.getElementById("api-flow-status");
+      const apiFlowTimers = [];
+      let activeApiKey = "create";
+
+      const appendMethodLabel = (element, label) => {
+        const ownerBreak = label.lastIndexOf(".");
+        const owner = ownerBreak >= 0 ? label.slice(0, ownerBreak + 1) : "";
+        const callable = ownerBreak >= 0 ? label.slice(ownerBreak + 1) : label;
+        if (owner) {
+          element.append(document.createTextNode(owner), document.createElement("wbr"));
+        }
+        if (callable.length <= 19 || callable.includes(" / ")) {
+          element.append(document.createTextNode(callable));
+          return;
+        }
+        const words = callable.split(/(?=[A-Z])/);
+        const groups = [];
+        let group = "";
+        words.forEach((word) => {
+          if (group && group.length + word.length > 19) {
+            groups.push(group);
+            group = word;
+          } else {
+            group += word;
+          }
+        });
+        if (group) groups.push(group);
+        groups.forEach((part, index) => {
+          if (index > 0) element.append(document.createElement("wbr"));
+          element.append(document.createTextNode(part));
+        });
+      };
+
+      const renderMethodFlow = (api) => {
+        apiFlowSteps.replaceChildren();
+        api.flow.forEach((flowStep, index) => {
+          const item = document.createElement("li");
+          const number = document.createElement("span");
+          const method = document.createElement("code");
+          const explanation = document.createElement("small");
+          item.className = "method-step";
+          number.textContent = String(index + 1).padStart(2, "0");
+          appendMethodLabel(method, flowStep[0]);
+          explanation.textContent = flowStep[1];
+          item.append(number, method, explanation);
+          apiFlowSteps.append(item);
+        });
+        methodFlowTitle.textContent = api.title + " execution";
+        methodFlowTrack.style.setProperty("--flow-count", String(api.flow.length));
+        methodFlowTrack.style.setProperty("--flow-progress", "0%");
+        apiFlowSteps.setAttribute("aria-label", api.title + " method sequence");
+        apiFlowStatus.textContent = "Ready to trace the request";
+      };
+
+      const runApiFlow = () => {
+        clearTimers(apiFlowTimers);
+        const api = apis[activeApiKey];
+        const steps = Array.from(apiFlowSteps.children);
+        steps.forEach((step) => step.classList.remove("is-active", "is-complete"));
+        methodFlowTrack.style.setProperty("--flow-progress", "0%");
+
+        if (reducedMotion) {
+          steps.forEach((step) => step.classList.add("is-complete"));
+          methodFlowTrack.style.setProperty("--flow-progress", "86%");
+          apiFlowStatus.textContent = api.title + " complete";
+          return;
+        }
+
+        steps.forEach((step, index) => {
+          apiFlowTimers.push(window.setTimeout(() => {
+            steps.forEach((candidate, candidateIndex) => {
+              candidate.classList.toggle("is-complete", candidateIndex < index);
+              candidate.classList.toggle("is-active", candidateIndex === index);
+            });
+            const progress = steps.length > 1 ? 86 * index / (steps.length - 1) : 86;
+            methodFlowTrack.style.setProperty("--flow-progress", progress.toFixed(1) + "%");
+            apiFlowStatus.textContent = String(index + 1).padStart(2, "0") + " · " + api.flow[index][1];
+          }, index * 720));
+        });
+
+        apiFlowTimers.push(window.setTimeout(() => {
+          steps.forEach((step) => {
+            step.classList.remove("is-active");
+            step.classList.add("is-complete");
+          });
+          methodFlowTrack.style.setProperty("--flow-progress", "86%");
+          apiFlowStatus.textContent = api.title + " complete";
+        }, steps.length * 720));
+      };
+
+      const selectApi = (key, shouldRun = true) => {
+        const api = apis[key];
+        if (!api) return;
+        activeApiKey = key;
+        apiButtons.forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.api === key)));
+        apiMethod.textContent = api.method;
+        apiPath.textContent = api.path;
+        apiTitle.textContent = api.title;
+        apiPurpose.textContent = api.purpose;
+        apiInput.textContent = api.input;
+        apiAction.textContent = api.action;
+        apiResult.textContent = api.result;
+        renderMethodFlow(api);
+        apiPanel.style.animation = "none";
+        apiPanel.classList.remove("is-updating");
+        void apiPanel.offsetWidth;
+        apiPanel.style.animation = "";
+        apiPanel.classList.add("is-updating");
+        if (shouldRun) window.requestAnimationFrame(runApiFlow);
+      };
+
+      apiButtons.forEach((button) => button.addEventListener("click", () => selectApi(button.dataset.api)));
+      document.getElementById("replay-api-flow").addEventListener("click", runApiFlow);
+      document.querySelectorAll("[data-fixture-api]").forEach((button) => {
+        button.addEventListener("click", () => {
+          selectApi(button.dataset.fixtureApi);
+          document.getElementById("api-explorer").scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+        });
+      });
+
+      selectApi("create", false);
+
+      const heroFlowNodes = Array.from(document.querySelectorAll(".flow-node"));
+      const heroFlowLabel = document.getElementById("hero-flow-label");
+      const heroFlowLabels = [
+        "Request accepted",
+        "Contract validated",
+        "Use case executing",
+        "Transaction committed",
+        "Response returned"
+      ];
+      const heroFlowDelays = [0, 1600, 3000, 4400, 5800];
+      const heroFlowTimers = [];
+
+      const runHeroFlow = () => {
+        clearTimers(heroFlowTimers);
+        const showHeroStep = (index) => {
+          heroFlowNodes.forEach((node, nodeIndex) => node.classList.toggle("is-active", nodeIndex === index));
+          heroFlowLabel.textContent = heroFlowLabels[index];
+        };
+        if (reducedMotion) {
+          showHeroStep(heroFlowNodes.length - 1);
+          return;
+        }
+        heroFlowDelays.forEach((delay, index) => {
+          heroFlowTimers.push(window.setTimeout(() => showHeroStep(index), delay));
+        });
+      };
+
+      runHeroFlow();
+
+      const lifecycleStates = ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED"];
+      const lifecycleLabels = {
+        PENDING: "PENDING · created",
+        PROCESSING: "PROCESSING · preparing",
+        SHIPPED: "SHIPPED · dispatched",
+        DELIVERED: "DELIVERED · complete"
+      };
+      const stateNodes = Array.from(document.querySelectorAll("[data-state]"));
+      const activeStateLabel = document.getElementById("active-state-label");
+      let lifecycleIndex = 0;
+      let lifecycleTimer = null;
+
+      const advanceLifecycle = () => {
+        lifecycleIndex += 1;
+        if (lifecycleIndex >= lifecycleStates.length) {
+          if (lifecycleTimer !== null) window.clearInterval(lifecycleTimer);
+          lifecycleTimer = null;
+          return;
+        }
+        const active = lifecycleStates[lifecycleIndex];
+        stateNodes.forEach((node) => node.classList.toggle("is-active", node.dataset.state === active));
+        activeStateLabel.textContent = lifecycleLabels[active];
+      };
+
+      if (!reducedMotion) {
+        lifecycleTimer = window.setInterval(advanceLifecycle, 2200);
+      }
+
+      const schedulerStory = document.getElementById("scheduler");
+      const schedulerPendingState = document.getElementById("scheduler-pending-state");
+      const schedulerAction = document.getElementById("scheduler-action");
+      const schedulerProcessingState = document.getElementById("scheduler-processing-state");
+      const schedulerMethods = Array.from(document.querySelectorAll("[data-scheduler-step]"));
+      const schedulerPhase = document.getElementById("scheduler-phase");
+      const schedulerCount = document.getElementById("scheduler-count");
+      const schedulerResultNote = document.getElementById("scheduler-result-note");
+      const schedulerTimers = [];
+
+      const showSchedulerMethod = (activeIndex) => {
+        schedulerMethods.forEach((method, index) => {
+          method.classList.toggle("is-complete", index < activeIndex);
+          method.classList.toggle("is-active", index === activeIndex);
+        });
+      };
+
+      const finishScheduler = () => {
+        schedulerPendingState.classList.remove("is-phase-active");
+        schedulerAction.classList.remove("is-phase-active");
+        schedulerProcessingState.classList.add("is-phase-active");
+        schedulerMethods.forEach((method) => {
+          method.classList.remove("is-active");
+          method.classList.add("is-complete");
+        });
+        schedulerCount.textContent = "3";
+        schedulerResultNote.textContent = "3 rows advanced · immediate rerun updates 0";
+        schedulerPhase.textContent = "Commit complete: 3 orders now PROCESSING";
+        schedulerStory.removeAttribute("aria-busy");
+      };
+
+      const runScheduler = () => {
+        clearTimers(schedulerTimers);
+        schedulerPendingState.classList.add("is-phase-active");
+        schedulerAction.classList.remove("is-phase-active");
+        schedulerProcessingState.classList.remove("is-phase-active");
+        schedulerMethods.forEach((method) => method.classList.remove("is-active", "is-complete"));
+        schedulerCount.textContent = "0";
+        schedulerResultNote.textContent = "Awaiting the scheduled run";
+        schedulerPhase.textContent = "Waiting for the 10:05 UTC tick";
+        schedulerStory.setAttribute("aria-busy", "true");
+        void schedulerAction.offsetWidth;
+
+        if (reducedMotion) {
+          finishScheduler();
+          return;
+        }
+
+        schedulerTimers.push(window.setTimeout(() => {
+          schedulerAction.classList.add("is-phase-active");
+          schedulerPhase.textContent = "10:05 UTC: the trigger fires";
+          showSchedulerMethod(0);
+        }, 520));
+        schedulerTimers.push(window.setTimeout(() => {
+          schedulerPhase.textContent = "OrderScheduler delegates one run";
+          showSchedulerMethod(1);
+        }, 1500));
+        schedulerTimers.push(window.setTimeout(() => {
+          schedulerPhase.textContent = "One transaction executes the bulk update";
+          showSchedulerMethod(2);
+        }, 2520));
+        schedulerTimers.push(window.setTimeout(finishScheduler, 3880));
+      };
+
+      document.getElementById("replay-scheduler").addEventListener("click", runScheduler);
+
+      const reveals = Array.from(document.querySelectorAll(".reveal, [data-animate]"));
+      if ("IntersectionObserver" in window) {
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("is-visible");
+              if (entry.target.id === "api-method-flow") runApiFlow();
+              if (entry.target.id === "scheduler") runScheduler();
+              observer.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.12 });
+        reveals.forEach((reveal) => observer.observe(reveal));
+      } else {
+        reveals.forEach((reveal) => reveal.classList.add("is-visible"));
+        runApiFlow();
+        runScheduler();
+      }
+
+      window.addEventListener("pagehide", () => {
+        if (lifecycleTimer !== null) window.clearInterval(lifecycleTimer);
+        clearTimers(heroFlowTimers);
+        clearTimers(apiFlowTimers);
+        clearTimers(schedulerTimers);
+      }, { once: true });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,2095 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src 'unsafe-inline' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Every Order API — A Guided Walkthrough</title>
+<style>:root{color-scheme:light dark;background:light-dark(rgb(255 255 255), rgb(24 24 24))}html,body{margin:0}body{box-sizing:border-box;padding:1rem;background:inherit}iframe{display:block;width:100%;max-width:736px;height:calc(100vh - 2rem);margin:0 auto;border:0}</style>
+</head>
+<body>
+<iframe sandbox="allow-scripts" referrerpolicy="no-referrer" title="Every Order API — A Guided Walkthrough" srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;meta name=&quot;referrer&quot; content=&quot;no-referrer&quot;&gt;
+&lt;meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &#x27;none&#x27;; script-src &#x27;unsafe-inline&#x27; &#x27;unsafe-eval&#x27; &#x27;wasm-unsafe-eval&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src &#x27;unsafe-inline&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src &#x27;none&#x27;; object-src &#x27;none&#x27;; base-uri &#x27;none&#x27;; form-action &#x27;none&#x27;&quot;&gt;
+&lt;title&gt;Every Order API — A Guided Walkthrough&lt;/title&gt;
+&lt;style&gt;:root {
+  color-scheme: light dark;
+  background-color: var(--background) !important;
+
+  /* Agent-facing contract; keep in sync with SKILL.md. */
+  --background: light-dark(rgb(255 255 255), rgb(24 24 24));
+  --foreground: light-dark(rgb(26 28 31), rgb(255 255 255));
+  --card: color-mix(in oklab, var(--foreground) 5%, transparent);
+  --card-foreground: var(--foreground);
+  --popover: light-dark(rgb(255 255 255), rgb(45 45 45));
+  --popover-foreground: var(--foreground);
+  --primary: light-dark(rgb(51 156 255), rgb(131 195 255));
+  --primary-foreground: light-dark(rgb(255 255 255), rgb(13 13 13));
+  --secondary: light-dark(rgb(255 255 255 / 96%), rgb(54 54 54 / 96%));
+  --secondary-foreground: var(--foreground);
+  --muted: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --muted-foreground: light-dark(
+    rgb(26 28 31 / 49.4%),
+    rgb(255 255 255 / 49.8%)
+  );
+  --accent: light-dark(rgb(229 242 255), rgb(13 39 63));
+  --accent-foreground: var(--primary);
+  --destructive: light-dark(rgb(226 85 7), rgb(255 133 73));
+  --border: light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%));
+  --input: light-dark(
+    rgb(26 28 31 / 11.8%),
+    color-mix(in oklab, rgb(0 0 0) 10%, transparent)
+  );
+  --ring: light-dark(rgb(51 156 255), rgb(131 195 255 / 76%));
+  --font-size-base: 14px;
+  --viz-series-1: var(--primary);
+  --viz-series-2: light-dark(rgb(243 136 59), rgb(245 154 86));
+  --viz-series-3: light-dark(rgb(93 201 119), rgb(116 213 139));
+  --viz-series-4: light-dark(rgb(235 119 177), rgb(240 143 192));
+  --viz-series-5: light-dark(rgb(155 121 236), rgb(170 145 239));
+  --viz-series-6: light-dark(rgb(58 185 177), rgb(90 203 194));
+
+  /* Internal implementation variables; not part of the agent contract. */
+  --font-sans: -apple-system, system-ui, &quot;Segoe UI&quot;, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, &quot;SF Mono&quot;, Menlo, Consolas, &quot;Liberation Mono&quot;,
+    monospace;
+  --font-size-normal: max(11px, var(--font-size-base));
+  --font-size-tooltip: calc(var(--font-size-base) - 1px);
+  --font-size-small: max(11px, calc(var(--font-size-base) - 2px));
+  --font-size-h1: calc(var(--font-size-normal) * 1.7142857143);
+  --font-size-h2: calc(var(--font-size-normal) * 1.4285714286);
+  --font-size-h3: calc(var(--font-size-normal) * 1.2857142857);
+  --font-weight-normal: 430;
+  --font-weight-medium: 500;
+  --line-height-normal: calc(var(--font-size-normal) * 1.5);
+  --line-height-tooltip: calc(var(--font-size-tooltip) * 1.4285714286);
+  --line-height-small: calc(var(--font-size-small) + 4px);
+  --radius: 12.5px;
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-2xl: calc(var(--radius) * 1.6);
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px -1px rgb(0 0 0 / 8%);
+  --checkmark-image: url(&quot;data:image/svg+xml,%3Csvg xmlns=&#x27;http://www.w3.org/2000/svg&#x27; viewBox=&#x27;0 0 17 17&#x27;%3E%3Cpath d=&#x27;M12.8961 3.64101C13.1297 3.41418 13.4984 3.37523 13.7779 3.56581C14.0571 3.75635 14.1554 4.11331 14.0299 4.41347L13.9615 4.53847L7.71151 13.7045C7.59411 13.8767 7.4063 13.9877 7.19881 14.0072C6.99136 14.0267 6.78564 13.9533 6.63826 13.806L2.88826 10.056L2.79842 9.9457C2.6192 9.67407 2.64927 9.30496 2.88826 9.06581C3.12738 8.82669 3.49647 8.79676 3.76815 8.97597L3.8785 9.06581L7.03084 12.2182L12.8053 3.74941L12.8961 3.64101Z&#x27;/%3E%3C/svg%3E&quot;);
+
+  /* Legacy aliases; not part of the current agent contract. */
+  --viz-bg: transparent;
+  --viz-panel: var(--card);
+  --viz-border: var(--border);
+  --viz-text: var(--foreground);
+  --viz-muted: var(--muted-foreground);
+  --viz-accent: var(--primary);
+  --viz-accent-text: var(--primary-foreground);
+  --viz-accent-bg: var(--accent);
+  --viz-font-size: var(--font-size-base);
+  --viz-warning: var(--destructive);
+  --color-background-primary: var(--background);
+  --color-text-primary: var(--foreground);
+  --color-border-secondary: var(--border);
+}
+
+:root[data-theme=&quot;light&quot;] {
+  color-scheme: light;
+}
+
+:root[data-theme=&quot;dark&quot;] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html &gt; body {
+  margin: 0;
+  padding: 5px;
+  color: var(--foreground);
+  background: transparent !important;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-normal);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}
+
+a {
+  color: color-mix(in srgb, var(--viz-accent) 80%, var(--viz-text) 20%);
+  cursor: pointer;
+  font-weight: var(--viz-font-weight-medium);
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
+
+a:is(:hover, :focus-visible) {
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 0.5px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-block: 0;
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+}
+
+b,
+strong,
+th {
+  font-weight: var(--font-weight-medium);
+}
+
+code:not(pre code) {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  corner-shape: superellipse(1.5);
+  background: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  word-break: break-word;
+}
+
+#widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: transparent !important;
+}
+
+.card {
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  border-radius: var(--radius-2xl);
+  corner-shape: superellipse(1.5);
+  color: var(--card-foreground);
+  background: var(--card);
+}
+
+#widget &gt; :not(.card) {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: min(
+    20rem,
+    var(--tooltip-available-width, calc(100vw - 10px)),
+    calc(100vw - 10px)
+  );
+  max-height: min(
+    var(--tooltip-available-height, calc(100vh - 10px)),
+    calc(100vh - 10px)
+  );
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--popover-foreground);
+  background: var(--popover);
+  box-shadow: none;
+  font-size: var(--font-size-tooltip);
+  line-height: var(--line-height-tooltip);
+  overflow-wrap: break-word;
+  white-space: normal;
+  pointer-events: none;
+  user-select: none;
+}
+
+.viz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(180px, 24%), 1fr));
+  gap: 10px;
+}
+
+.viz-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viz-stat-value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+.viz-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.viz-badge {
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  color: var(--accent-foreground);
+  background: var(--accent);
+  font-weight: var(--font-weight-medium);
+}
+
+small,
+.text-small,
+.viz-badge {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+}
+
+.text-muted {
+  color: var(--muted-foreground);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.viz-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.viz-controls &gt; .form-label {
+  display: grid;
+  min-width: min(100%, 260px);
+  flex: 1 1 280px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 0;
+}
+
+.viz-controls &gt; .form-label &gt; :is(.form-control, .form-range, .form-select) {
+  grid-column: 1 / -1;
+}
+
+.btn,
+.form-check-input,
+.form-control,
+.form-range,
+.form-select {
+  font: inherit;
+}
+
+.btn {
+  appearance: button;
+  display: inline-flex;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 8px;
+  -webkit-app-region: no-drag;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: var(--cursor-interaction, pointer);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.btn:is(.btn-block, .viz-tile) {
+  inline-size: 100%;
+}
+
+.btn.viz-tile {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+a.btn {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn-primary {
+  border-color: transparent;
+  color: var(--primary-foreground);
+  background: var(--foreground);
+  background-clip: padding-box;
+}
+
+.btn-primary .text-muted {
+  color: color-mix(in srgb, var(--primary-foreground) 50%, transparent);
+}
+
+.btn-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
+  background-clip: padding-box;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.btn-ghost:not(:disabled):hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+[data-lucide] {
+  stroke-width: 1.6;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--foreground);
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  padding: 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--foreground);
+  background: var(--secondary);
+}
+
+.form-control::placeholder {
+  color: var(--muted-foreground);
+}
+
+.form-control[type=&quot;file&quot;] {
+  padding: 0;
+  overflow: hidden;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control[type=&quot;file&quot;]::file-selector-button {
+  min-height: 26px;
+  margin-right: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid var(--input);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: inherit;
+  font: inherit;
+}
+
+.form-control[type=&quot;file&quot;]:not(:disabled):hover::file-selector-button {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-control-color[type=&quot;color&quot;] {
+  width: 40px;
+  height: 28px;
+  padding: 3px;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch {
+  border: 0;
+  border-radius: calc(var(--radius-lg) - 4px);
+  corner-shape: superellipse(1.5);
+}
+
+textarea.form-control {
+  height: auto;
+  min-height: 72px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.form-control:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.form-select {
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 32px 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--foreground);
+  background-color: var(--secondary);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 10px) 50%;
+  background-repeat: no-repeat;
+  background-size: 4px 4px;
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-select:not(:disabled):hover {
+  background-color: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-select:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-check {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-check-input {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  border: 1px solid var(--input);
+  color: var(--primary-foreground);
+  background-color: transparent;
+  cursor: var(--cursor-interaction, default);
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;] {
+  border-color: var(--input);
+  border-radius: var(--radius-sm);
+  corner-shape: superellipse(1.5);
+  background-color: var(--secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input:not(:disabled):not(:checked):hover {
+  background-color: var(--card);
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;]:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input[type=&quot;checkbox&quot;]:checked::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--primary-foreground);
+  content: &quot;&quot;;
+  mask: var(--checkmark-image) center / 12px 12px no-repeat;
+}
+
+.form-check-input[type=&quot;radio&quot;] {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+}
+
+.form-check-input[type=&quot;radio&quot;]:checked {
+  border: 2px solid var(--primary);
+  background:
+    radial-gradient(circle, var(--primary-foreground) 0 2.5px, transparent 3px),
+    var(--primary);
+}
+
+.form-check:not(.form-switch) .form-check-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+}
+
+.form-switch .form-check-input:disabled,
+.form-switch .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.form-check-label {
+  color: var(--foreground);
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-switch .form-check-input {
+  position: relative;
+  width: 32px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  box-shadow: none;
+  transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid light-dark(var(--primary-foreground), var(--foreground));
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+  box-shadow: var(--shadow-sm);
+  content: &quot;&quot;;
+  transform: translate(2px, -50%);
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input:checked {
+  background: var(--primary);
+}
+
+.form-switch .form-check-input:checked::before {
+  transform: translate(14px, -50%);
+}
+
+.form-switch .form-check-input:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.form-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  outline: none;
+  border: 0;
+  accent-color: var(--primary);
+  background: linear-gradient(
+      color-mix(in srgb, var(--foreground) 7%, transparent),
+      color-mix(in srgb, var(--foreground) 7%, transparent)
+    )
+    center / 100% 2px no-repeat;
+}
+
+.form-range::-webkit-slider-runnable-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-webkit-slider-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range::-moz-range-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-moz-range-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.btn:not(.btn-primary, .viz-tile):is(
+    [aria-pressed=&quot;true&quot;],
+    [aria-selected=&quot;true&quot;],
+    .is-selected
+  ) {
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.btn.viz-tile:is([aria-pressed=&quot;true&quot;], [aria-selected=&quot;true&quot;], .is-selected) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#widget &gt; svg {
+  width: 100%;
+}
+
+.text-warning,
+.text-destructive {
+  color: var(--destructive);
+}
+
+html&gt;body{padding:0}&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;style&gt;
+  #order-api-theater {
+    color: var(--foreground);
+    display: grid;
+    gap: 1rem;
+    min-width: 0;
+  }
+
+  #order-api-theater * {
+    box-sizing: border-box;
+  }
+
+  #order-api-theater code,
+  #order-api-theater pre {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: pre-wrap;
+  }
+
+  #order-api-theater .api-head,
+  #order-api-theater .api-copy,
+  #order-api-theater .api-stage,
+  #order-api-theater .api-scene,
+  #order-api-theater .api-focus,
+  #order-api-theater .api-code {
+    display: grid;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+
+  #order-api-theater .api-meta,
+  #order-api-theater .api-controls,
+  #order-api-theater .api-playback,
+  #order-api-theater .api-route,
+  #order-api-theater .api-outcomes,
+  #order-api-theater .api-note {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  #order-api-theater .api-meta,
+  #order-api-theater .api-controls {
+    justify-content: space-between;
+  }
+
+  #order-api-theater .api-picker {
+    flex: 1 1 18rem;
+    margin: 0;
+  }
+
+  #order-api-theater .api-progress {
+    height: 0.5rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--muted);
+  }
+
+  #order-api-theater .api-progress-fill {
+    display: block;
+    width: 14.28%;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--viz-series-1);
+    transition: width 320ms ease;
+  }
+
+  #order-api-theater .api-copy {
+    justify-items: center;
+    text-align: center;
+    width: 100%;
+    max-width: 44rem;
+    margin-inline: auto;
+  }
+
+  #order-api-theater .api-copy h2,
+  #order-api-theater .api-copy p,
+  #order-api-theater .api-route code {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  #order-api-theater .api-copy h2,
+  #order-api-theater .api-copy p,
+  #order-api-theater .api-code h3,
+  #order-api-theater .api-code ol,
+  #order-api-theater .api-wire {
+    margin: 0;
+  }
+
+  #order-api-theater .api-route {
+    justify-content: center;
+  }
+
+  #order-api-theater .api-route code {
+    font-weight: 500;
+  }
+
+  #order-api-theater .api-stage {
+    align-content: start;
+    min-height: 23rem;
+    padding-block: 0.5rem;
+  }
+
+  #order-api-theater .api-stage[hidden],
+  #order-api-theater .api-code[hidden] {
+    display: none;
+  }
+
+  #order-api-theater .api-rail {
+    display: grid;
+    grid-template-columns:
+      minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr)
+      auto minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+
+  #order-api-theater .api-rail-node {
+    display: grid;
+    justify-items: center;
+    gap: 0.35rem;
+    min-width: 0;
+    padding-block: 0.6rem;
+    border-radius: 0.75rem;
+    color: var(--muted-foreground);
+    text-align: center;
+    transition: background 240ms ease, color 240ms ease, transform 240ms ease;
+  }
+
+  #order-api-theater .api-rail-node.is-active {
+    color: var(--primary-foreground);
+    background: var(--primary);
+    transform: translateY(-0.15rem);
+  }
+
+  #order-api-theater .api-rail-arrow {
+    color: var(--muted-foreground);
+  }
+
+  #order-api-theater .api-rail-arrow.is-passed {
+    color: var(--foreground);
+  }
+
+  #order-api-theater .api-token {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    text-align: center;
+    animation: api-token-arrive 420ms ease-out both;
+  }
+
+  #order-api-theater .api-focus {
+    width: min(calc(100% - 2rem), 38rem);
+    justify-self: center;
+    justify-items: center;
+    align-content: center;
+    text-align: center;
+    padding-block: 1rem;
+    animation: api-scene-forward 380ms ease-out both;
+  }
+
+  #order-api-theater .api-focus.is-backward {
+    animation-name: api-scene-backward;
+  }
+
+  #order-api-theater .api-symbol {
+    display: grid;
+    place-items: center;
+    width: 4rem;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--viz-series-1) 18%, transparent);
+    color: var(--foreground);
+  }
+
+  #order-api-theater .api-focus strong {
+    font-weight: 500;
+  }
+
+  #order-api-theater .api-wire {
+    width: min(100%, 34rem);
+    text-align: start;
+  }
+
+  #order-api-theater .api-outcomes {
+    justify-content: center;
+  }
+
+  #order-api-theater .api-outcome-error {
+    color: var(--destructive);
+  }
+
+  #order-api-theater .api-code {
+    min-height: 23rem;
+    align-content: center;
+  }
+
+  #order-api-theater .api-code ol {
+    padding-inline-start: 1.25rem;
+  }
+
+  #order-api-theater .api-code li + li {
+    margin-block-start: 0.4rem;
+  }
+
+  #order-api-theater .api-note {
+    justify-content: center;
+    padding-block-start: 0.75rem;
+    border-block-start: 1px solid var(--border);
+    text-align: center;
+  }
+
+  @keyframes api-scene-forward {
+    from {
+      opacity: 0.2;
+      transform: translateX(1rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes api-scene-backward {
+    from {
+      opacity: 0.2;
+      transform: translateX(-1rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes api-token-arrive {
+    from {
+      opacity: 0.25;
+      transform: translateY(-0.5rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (max-width: 600px) {
+    #order-api-theater .api-controls {
+      display: grid;
+      justify-items: stretch;
+    }
+
+    #order-api-theater .api-playback {
+      justify-content: center;
+    }
+
+    #order-api-theater .api-rail {
+      display: none;
+    }
+
+    #order-api-theater .api-route {
+      flex-direction: column;
+    }
+
+    #order-api-theater .api-stage,
+    #order-api-theater .api-code {
+      min-height: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #order-api-theater .api-progress-fill,
+    #order-api-theater .api-rail-node {
+      transition: none;
+    }
+
+    #order-api-theater .api-token,
+    #order-api-theater .api-focus,
+    #order-api-theater .api-focus.is-backward {
+      animation: none;
+    }
+  }
+&lt;/style&gt;
+
+&lt;section id=&quot;order-api-theater&quot; aria-label=&quot;Guided walkthrough of the five HTTP orders endpoints&quot;&gt;
+  &lt;header class=&quot;api-head&quot;&gt;
+    &lt;div class=&quot;api-meta&quot;&gt;
+      &lt;span id=&quot;api-step-count&quot; class=&quot;viz-badge&quot;&gt;Step 1 of 7&lt;/span&gt;
+      &lt;span class=&quot;text-small text-muted&quot;&gt;Explainer only — no live request is sent&lt;/span&gt;
+    &lt;/div&gt;
+    &lt;div
+      id=&quot;api-progress&quot;
+      class=&quot;api-progress&quot;
+      role=&quot;progressbar&quot;
+      aria-label=&quot;API walkthrough progress&quot;
+      aria-valuemin=&quot;1&quot;
+      aria-valuemax=&quot;7&quot;
+      aria-valuenow=&quot;1&quot;
+    &gt;
+      &lt;span id=&quot;api-progress-fill&quot; class=&quot;api-progress-fill&quot;&gt;&lt;/span&gt;
+    &lt;/div&gt;
+  &lt;/header&gt;
+
+  &lt;div class=&quot;viz-controls api-controls&quot;&gt;
+    &lt;label class=&quot;form-label api-picker&quot; for=&quot;api-picker&quot;&gt;
+      Choose API
+      &lt;select id=&quot;api-picker&quot; class=&quot;form-select&quot;&gt;
+        &lt;option value=&quot;create&quot;&gt;POST · Create order&lt;/option&gt;
+        &lt;option value=&quot;get&quot;&gt;GET · Retrieve one order&lt;/option&gt;
+        &lt;option value=&quot;list&quot;&gt;GET · List orders&lt;/option&gt;
+        &lt;option value=&quot;advance&quot;&gt;PATCH · Advance status&lt;/option&gt;
+        &lt;option value=&quot;cancel&quot;&gt;POST · Cancel order&lt;/option&gt;
+      &lt;/select&gt;
+    &lt;/label&gt;
+    &lt;div class=&quot;api-playback&quot; aria-label=&quot;API walkthrough playback&quot;&gt;
+      &lt;button id=&quot;api-back&quot; type=&quot;button&quot; class=&quot;btn btn-ghost&quot;&gt;Back&lt;/button&gt;
+      &lt;button id=&quot;api-play&quot; type=&quot;button&quot; class=&quot;btn btn-primary&quot;&gt;Play API&lt;/button&gt;
+      &lt;button id=&quot;api-next&quot; type=&quot;button&quot; class=&quot;btn&quot;&gt;Next&lt;/button&gt;
+      &lt;button id=&quot;api-code-toggle&quot; type=&quot;button&quot; class=&quot;btn btn-ghost&quot; aria-pressed=&quot;false&quot;&gt;
+        Show code
+      &lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;section class=&quot;api-copy&quot; aria-labelledby=&quot;api-scene-title&quot;&gt;
+    &lt;div class=&quot;api-route&quot;&gt;
+      &lt;span id=&quot;api-method&quot; class=&quot;viz-badge&quot;&gt;POST&lt;/span&gt;
+      &lt;code id=&quot;api-path&quot;&gt;/api/v1/orders&lt;/code&gt;
+    &lt;/div&gt;
+    &lt;span id=&quot;api-phase&quot; class=&quot;text-small text-muted&quot;&gt;The request&lt;/span&gt;
+    &lt;h2 id=&quot;api-scene-title&quot;&gt;The caller sends an order&lt;/h2&gt;
+    &lt;p id=&quot;api-caption&quot;&gt;
+      The request contains only immutable product IDs and quantities.
+    &lt;/p&gt;
+    &lt;p id=&quot;api-live-summary&quot; class=&quot;sr-only&quot; aria-live=&quot;polite&quot;&gt;&lt;/p&gt;
+  &lt;/section&gt;
+
+  &lt;div id=&quot;api-token&quot; class=&quot;api-token&quot;&gt;
+    &lt;i data-lucide=&quot;send&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;
+    &lt;strong id=&quot;api-token-label&quot;&gt;Create request&lt;/strong&gt;
+    &lt;span id=&quot;api-token-state&quot; class=&quot;viz-badge&quot;&gt;SENT&lt;/span&gt;
+  &lt;/div&gt;
+
+  &lt;div
+    id=&quot;api-stage&quot;
+    class=&quot;api-stage&quot;
+    role=&quot;group&quot;
+    aria-label=&quot;Create order request starts at the API caller&quot;
+  &gt;&lt;/div&gt;
+
+  &lt;section id=&quot;api-code&quot; class=&quot;card api-code&quot; aria-labelledby=&quot;api-code-title&quot; hidden&gt;
+    &lt;h3 id=&quot;api-code-title&quot;&gt;Behind this step&lt;/h3&gt;
+    &lt;ol id=&quot;api-code-list&quot;&gt;&lt;/ol&gt;
+  &lt;/section&gt;
+
+  &lt;aside class=&quot;api-note text-small text-muted&quot;&gt;
+    &lt;i data-lucide=&quot;clock-3&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;
+    &lt;span&gt;The five-minute scheduler is not an API; it calls the pending-order processor directly.&lt;/span&gt;
+  &lt;/aside&gt;
+&lt;/section&gt;
+
+&lt;script&gt;
+  (() =&gt; {
+    const root = document.getElementById(&quot;order-api-theater&quot;);
+    if (!root || root.dataset.ready === &quot;true&quot;) return;
+    root.dataset.ready = &quot;true&quot;;
+
+    const laneLabels = [
+      [&quot;user&quot;, &quot;Caller&quot;],
+      [&quot;panel-top&quot;, &quot;HTTP / API&quot;],
+      [&quot;boxes&quot;, &quot;Application&quot;],
+      [&quot;archive&quot;, &quot;Persistence&quot;],
+      [&quot;database&quot;, &quot;PostgreSQL&quot;],
+      [&quot;reply&quot;, &quot;Response&quot;]
+    ];
+
+    const commonProblem = [
+      &quot;Errors use &lt;code&gt;application/problem+json&lt;/code&gt; with exactly eight members: type, title, status, detail, instance, code, traceId, and violations.&quot;,
+      &quot;Known-route wrong method is &lt;code&gt;405&lt;/code&gt;; unacceptable &lt;code&gt;Accept&lt;/code&gt; is &lt;code&gt;406&lt;/code&gt;; unsupported create/PATCH media type is &lt;code&gt;415&lt;/code&gt;.&quot;,
+      &quot;Unexpected order-endpoint failures become a sanitized &lt;code&gt;500&lt;/code&gt;; database details and stack traces never leave the server.&quot;
+    ];
+
+    const apis = {
+      create: {
+        method: &quot;POST&quot;,
+        path: &quot;/api/v1/orders&quot;,
+        token: &quot;Create request&quot;,
+        steps: [
+          {
+            phase: &quot;The request&quot;,
+            title: &quot;The caller sends an order&quot;,
+            caption: &quot;The request contains only immutable product IDs and quantities.&quot;,
+            icon: &quot;send&quot;,
+            lane: 0,
+            state: &quot;SENT&quot;,
+            wire: &#x27;{&quot;items&quot;:[{&quot;productId&quot;:&quot;coffee-mug&quot;,&quot;quantity&quot;:2},{&quot;productId&quot;:&quot;notebook&quot;,&quot;quantity&quot;:1}]}&#x27;,
+            code: [
+              &quot;&lt;code&gt;POST /api/v1/orders&lt;/code&gt; accepts JSON only.&quot;,
+              &quot;The body contains one &lt;code&gt;items&lt;/code&gt; array with 1–100 entries.&quot;,
+              &quot;There is no customer, price, inventory, payment, or idempotency key in V1.&quot;
+            ]
+          },
+          {
+            phase: &quot;The HTTP gate&quot;,
+            title: &quot;Trace and validate first&quot;,
+            caption: &quot;The server creates its own trace ID and rejects malformed or undocumented JSON before saving.&quot;,
+            icon: &quot;shield-check&quot;,
+            lane: 1,
+            state: &quot;CHECKING&quot;,
+            wire: &quot;X-Trace-Id: opaque server value&quot;,
+            code: [
+              &quot;&lt;code&gt;RequestTraceFilter&lt;/code&gt; creates the server-owned &lt;code&gt;X-Trace-Id&lt;/code&gt;; caller values are not trusted.&quot;,
+              &quot;Jackson and Bean Validation reject unknown or duplicate members, numeric strings, floats, exponent quantities, missing items, and invalid bounds.&quot;,
+              &quot;&lt;code&gt;productId&lt;/code&gt; is preserved exactly and compared case-sensitively; it is never normalized or case-folded.&quot;
+            ]
+          },
+          {
+            phase: &quot;Translation&quot;,
+            title: &quot;HTTP becomes application input&quot;,
+            caption: &quot;The controller chooses the create use case; the mapper removes HTTP-specific shape.&quot;,
+            icon: &quot;arrow-left-right&quot;,
+            lane: 1,
+            state: &quot;MAPPED&quot;,
+            wire: &quot;NewOrderRequest → CreateOrderData&quot;,
+            code: [
+              &quot;&lt;code&gt;OrderController.create()&lt;/code&gt; receives the validated request.&quot;,
+              &quot;&lt;code&gt;ApiMapper.toData()&lt;/code&gt; creates an immutable &lt;code&gt;CreateOrderData&lt;/code&gt;.&quot;,
+              &quot;The API package never passes a JPA entity into or out of the controller.&quot;
+            ]
+          },
+          {
+            phase: &quot;Business decision&quot;,
+            title: &quot;Build one valid pending order&quot;,
+            caption: &quot;The service rejects exact duplicate products, then assigns the UUID, PENDING status, and one UTC timestamp.&quot;,
+            icon: &quot;package-plus&quot;,
+            lane: 2,
+            state: &quot;READY&quot;,
+            wire: &quot;OrderService.create() → OrderEntity.createPending()&quot;,
+            code: [
+              &quot;&lt;code&gt;OrderService.validateCreate()&lt;/code&gt; repeats critical item rules and rejects exact duplicate product IDs.&quot;,
+              &quot;&lt;code&gt;OrderItemEntity.create()&lt;/code&gt; preserves submitted positions; &lt;code&gt;OrderEntity.createPending()&lt;/code&gt; attaches the children.&quot;,
+              &quot;One &lt;code&gt;Clock.instant()&lt;/code&gt; value becomes both &lt;code&gt;createdAt&lt;/code&gt; and &lt;code&gt;updatedAt&lt;/code&gt;.&quot;
+            ]
+          },
+          {
+            phase: &quot;Persistence&quot;,
+            title: &quot;Save the whole aggregate&quot;,
+            caption: &quot;PostgreSQL receives the order and every item in one transaction: all rows commit, or none do.&quot;,
+            icon: &quot;database&quot;,
+            lane: [3, 4],
+            state: &quot;SAVING&quot;,
+            wire: &quot;orders × 1  +  order_items × 2&quot;,
+            code: [
+              &quot;&lt;code&gt;OrderRepository.save()&lt;/code&gt; persists the parent and cascades persist to its items.&quot;,
+              &quot;Flyway-created constraints defend status, timestamps, product length/basic blankness, quantity, position, and per-order uniqueness.&quot;,
+              &quot;The application alone guarantees at least one item and Java&#x27;s broader Unicode-blank rule.&quot;,
+              &quot;&lt;code&gt;DataMapper.toDetails()&lt;/code&gt; detaches the result while the transaction is still open.&quot;
+            ]
+          },
+          {
+            phase: &quot;The response&quot;,
+            title: &quot;Commit, then return 201&quot;,
+            caption: &quot;After the transaction commits, the API mapper builds the public order and the controller adds its Location.&quot;,
+            icon: &quot;circle-check-big&quot;,
+            lane: 5,
+            state: &quot;201 CREATED&quot;,
+            wire: &quot;Location: /api/v1/orders/7b3…e21&quot;,
+            outcomes: [[&quot;201&quot;, &quot;Full order · PENDING&quot;]],
+            code: [
+              &quot;The service transaction commits before &lt;code&gt;OrderController.create()&lt;/code&gt; resumes.&quot;,
+              &quot;&lt;code&gt;ApiMapper.toResponse()&lt;/code&gt; builds the full detail response; success bodies do not contain &lt;code&gt;traceId&lt;/code&gt;.&quot;,
+              &quot;Repeating the same create request creates a different order because create idempotency is outside V1.&quot;
+            ]
+          },
+          {
+            phase: &quot;Refusal paths&quot;,
+            title: &quot;Invalid orders stop at the boundary&quot;,
+            caption: &quot;Create-specific invalid input is 400. Nothing is partially persisted.&quot;,
+            icon: &quot;octagon-x&quot;,
+            lane: 5,
+            state: &quot;REFUSED&quot;,
+            outcomes: [[&quot;400&quot;, &quot;Malformed or invalid request&quot;]],
+            code: [
+              &quot;&lt;code&gt;400 INVALID_REQUEST&lt;/code&gt; covers malformed/unknown fields, empty items, invalid product IDs, duplicates, and quantity bounds.&quot;,
+              &quot;Validation failure happens before persistence, and any later failure rolls back the aggregate transaction.&quot;
+            ].concat(commonProblem)
+          }
+        ]
+      },
+      get: {
+        method: &quot;GET&quot;,
+        path: &quot;/api/v1/orders/{orderId}&quot;,
+        token: &quot;Detail request&quot;,
+        steps: [
+          {
+            phase: &quot;The request&quot;,
+            title: &quot;The caller asks for one order&quot;,
+            caption: &quot;The path carries a UUID; there is no request body.&quot;,
+            icon: &quot;search&quot;,
+            lane: 0,
+            state: &quot;SENT&quot;,
+            wire: &quot;GET /api/v1/orders/7b3…e21&quot;,
+            code: [
+              &quot;&lt;code&gt;GET /api/v1/orders/{orderId}&lt;/code&gt; is safe and read-only.&quot;,
+              &quot;The response, when found, contains the order and all submitted items.&quot;
+            ]
+          },
+          {
+            phase: &quot;The HTTP gate&quot;,
+            title: &quot;Trace the request and parse the UUID&quot;,
+            caption: &quot;A malformed UUID is rejected before the controller can ask the service.&quot;,
+            icon: &quot;fingerprint&quot;,
+            lane: 1,
+            state: &quot;CHECKING&quot;,
+            wire: &quot;X-Trace-Id + UUID conversion&quot;,
+            code: [
+              &quot;&lt;code&gt;RequestTraceFilter&lt;/code&gt; sets &lt;code&gt;X-Trace-Id&lt;/code&gt; on successes and errors.&quot;,
+              &quot;Spring converts &lt;code&gt;orderId&lt;/code&gt; to &lt;code&gt;UUID&lt;/code&gt;; conversion failure maps to &lt;code&gt;400 INVALID_REQUEST&lt;/code&gt;.&quot;
+            ]
+          },
+          {
+            phase: &quot;Translation&quot;,
+            title: &quot;The controller selects detail retrieval&quot;,
+            caption: &quot;The thin controller forwards the UUID and never opens a transaction itself.&quot;,
+            icon: &quot;route&quot;,
+            lane: 1,
+            state: &quot;ROUTED&quot;,
+            wire: &quot;OrderController.get() → OrderService.get()&quot;,
+            code: [
+              &quot;&lt;code&gt;OrderController.get(UUID)&lt;/code&gt; calls the concrete application facade.&quot;,
+              &quot;No request mapper is needed because the only input is already a UUID.&quot;
+            ]
+          },
+          {
+            phase: &quot;Application&quot;,
+            title: &quot;Open a read-only use case&quot;,
+            caption: &quot;The service asks for a complete aggregate and classifies a missing valid ID.&quot;,
+            icon: &quot;book-open-check&quot;,
+            lane: 2,
+            state: &quot;READING&quot;,
+            wire: &quot;@Transactional(readOnly = true)&quot;,
+            code: [
+              &quot;&lt;code&gt;OrderService.get()&lt;/code&gt; runs in a read-only transaction.&quot;,
+              &quot;An empty repository result becomes &lt;code&gt;OrderNotFoundException&lt;/code&gt;.&quot;
+            ]
+          },
+          {
+            phase: &quot;Persistence&quot;,
+            title: &quot;Load the order and its items together&quot;,
+            caption: &quot;One aggregate query fetches the order and children; submitted item order is restored before detaching.&quot;,
+            icon: &quot;database&quot;,
+            lane: [3, 4],
+            state: &quot;FOUND&quot;,
+            wire: &quot;SELECT DISTINCT + LEFT JOIN FETCH items&quot;,
+            code: [
+              &quot;&lt;code&gt;OrderRepository.findDetailById()&lt;/code&gt; fetches the complete aggregate.&quot;,
+              &quot;&lt;code&gt;DataMapper.toDetails()&lt;/code&gt; sorts items by position and creates an immutable application result.&quot;,
+              &quot;The API response never depends on an open persistence session.&quot;
+            ]
+          },
+          {
+            phase: &quot;The response&quot;,
+            title: &quot;Close the read and return 200&quot;,
+            caption: &quot;After the read-only transaction closes, the API mapper returns the complete public order.&quot;,
+            icon: &quot;circle-check-big&quot;,
+            lane: 5,
+            state: &quot;200 OK&quot;,
+            outcomes: [[&quot;200&quot;, &quot;Full order detail&quot;]],
+            code: [
+              &quot;&lt;code&gt;ApiMapper.toResponse()&lt;/code&gt; maps the detached result after the service proxy returns.&quot;,
+              &quot;The body contains &lt;code&gt;id&lt;/code&gt;, status, items, &lt;code&gt;createdAt&lt;/code&gt;, and &lt;code&gt;updatedAt&lt;/code&gt;.&quot;
+            ]
+          },
+          {
+            phase: &quot;Refusal paths&quot;,
+            title: &quot;Bad ID and missing order are different&quot;,
+            caption: &quot;Malformed input is 400; a syntactically valid UUID that does not exist is 404.&quot;,
+            icon: &quot;octagon-x&quot;,
+            lane: 5,
+            state: &quot;REFUSED&quot;,
+            outcomes: [[&quot;400&quot;, &quot;Malformed UUID&quot;], [&quot;404&quot;, &quot;ORDER_NOT_FOUND&quot;]],
+            code: [
+              &quot;&lt;code&gt;400 INVALID_REQUEST&lt;/code&gt; identifies the &lt;code&gt;orderId&lt;/code&gt; path field.&quot;,
+              &quot;&lt;code&gt;404 ORDER_NOT_FOUND&lt;/code&gt; means the route is valid but that order does not exist.&quot;,
+              &quot;An unmapped route instead uses &lt;code&gt;404 RESOURCE_NOT_FOUND&lt;/code&gt;.&quot;
+            ].concat(commonProblem)
+          }
+        ]
+      },
+      list: {
+        method: &quot;GET&quot;,
+        path: &quot;/api/v1/orders&quot;,
+        token: &quot;List request&quot;,
+        steps: [
+          {
+            phase: &quot;The request&quot;,
+            title: &quot;The caller asks for a bounded page&quot;,
+            caption: &quot;Status is optional; page defaults to 0 and size defaults to 20.&quot;,
+            icon: &quot;list-filter&quot;,
+            lane: 0,
+            state: &quot;SENT&quot;,
+            wire: &quot;GET /api/v1/orders?status=PENDING&amp;page=0&amp;size=20&quot;,
+            code: [
+              &quot;Only &lt;code&gt;status&lt;/code&gt;, &lt;code&gt;page&lt;/code&gt;, and &lt;code&gt;size&lt;/code&gt; affect listing.&quot;,
+              &quot;Pages are zero-based; size must be 1–100.&quot;
+            ]
+          },
+          {
+            phase: &quot;The HTTP gate&quot;,
+            title: &quot;Parse only documented controls&quot;,
+            caption: &quot;Repeated documented parameters are rejected; undocumented parameters such as sort are ignored.&quot;,
+            icon: &quot;sliders-horizontal&quot;,
+            lane: 1,
+            state: &quot;PARSING&quot;,
+            wire: &quot;status once · page once · size once&quot;,
+            code: [
+              &quot;&lt;code&gt;OrderController.parsePageQuery()&lt;/code&gt; checks repetition before integer parsing.&quot;,
+              &quot;A repeated &lt;code&gt;status&lt;/code&gt;, &lt;code&gt;page&lt;/code&gt;, or &lt;code&gt;size&lt;/code&gt; is &lt;code&gt;400&lt;/code&gt;.&quot;,
+              &quot;Undocumented query parameters do not change the endpoint.&quot;
+            ]
+          },
+          {
+            phase: &quot;Translation&quot;,
+            title: &quot;The controller builds one page query&quot;,
+            caption: &quot;The controller applies defaults and forwards simple values to the service.&quot;,
+            icon: &quot;route&quot;,
+            lane: 1,
+            state: &quot;ROUTED&quot;,
+            wire: &quot;OrderController.list() → OrderService.list()&quot;,
+            code: [
+              &quot;Non-integer page or size values are rejected by the controller.&quot;,
+              &quot;The service receives optional status, page, and size—not HTTP request objects.&quot;
+            ]
+          },
+          {
+            phase: &quot;Application&quot;,
+            title: &quot;Validate bounds, then status&quot;,
+            caption: &quot;Page and size are checked first; an optional status must exactly match one known uppercase value.&quot;,
+            icon: &quot;badge-check&quot;,
+            lane: 2,
+            state: &quot;VALID&quot;,
+            wire: &quot;PageRequest.of(page, size)&quot;,
+            code: [
+              &quot;&lt;code&gt;OrderService.validatePage()&lt;/code&gt; runs before optional status parsing.&quot;,
+              &quot;&lt;code&gt;OrderStatus.valueOf(status)&lt;/code&gt; makes status exact and case-sensitive.&quot;,
+              &quot;No caller-defined sort reaches persistence.&quot;
+            ]
+          },
+          {
+            phase: &quot;Persistence&quot;,
+            title: &quot;Query summaries, not item collections&quot;,
+            caption: &quot;PostgreSQL returns a page of lightweight summaries plus a matching count.&quot;,
+            icon: &quot;database&quot;,
+            lane: [3, 4],
+            state: &quot;QUERYING&quot;,
+            wire: &quot;createdAt DESC, id DESC&quot;,
+            code: [
+              &quot;The repository chooses &lt;code&gt;findSummaryPage()&lt;/code&gt; or &lt;code&gt;findSummaryPageByStatus()&lt;/code&gt;.&quot;,
+              &quot;A projection returns &lt;code&gt;itemCount&lt;/code&gt; without loading item arrays.&quot;,
+              &quot;Offset pages are deterministic for a stable dataset; concurrent inserts can shift later pages.&quot;
+            ]
+          },
+          {
+            phase: &quot;The response&quot;,
+            title: &quot;Return summaries and page metadata&quot;,
+            caption: &quot;The caller receives content, counts, page numbers, and first/last flags—even when content is empty.&quot;,
+            icon: &quot;circle-check-big&quot;,
+            lane: 5,
+            state: &quot;200 OK&quot;,
+            outcomes: [[&quot;200&quot;, &quot;Page or empty page&quot;]],
+            code: [
+              &quot;&lt;code&gt;DataMapper.toPage()&lt;/code&gt; detaches summaries; &lt;code&gt;ApiMapper.toResponse()&lt;/code&gt; builds the public page.&quot;,
+              &quot;Each summary has id, status, itemCount, createdAt, and updatedAt; it has no item array.&quot;,
+              &quot;A valid beyond-range page returns &lt;code&gt;200&lt;/code&gt; with empty &lt;code&gt;content&lt;/code&gt;, not 404.&quot;
+            ]
+          },
+          {
+            phase: &quot;Refusal paths&quot;,
+            title: &quot;Only invalid controls return 400&quot;,
+            caption: &quot;Unknown status, bad bounds, non-integers, or repeated documented parameters are invalid.&quot;,
+            icon: &quot;octagon-x&quot;,
+            lane: 5,
+            state: &quot;REFUSED&quot;,
+            outcomes: [[&quot;400&quot;, &quot;Invalid list controls&quot;]],
+            code: [
+              &quot;Negative page, size outside 1–100, blank/unknown/lowercase status, and repeated documented parameters return &lt;code&gt;400 INVALID_REQUEST&lt;/code&gt;.&quot;,
+              &quot;An empty match set is a successful &lt;code&gt;200&lt;/code&gt;, not an error.&quot;
+            ].concat(commonProblem)
+          }
+        ]
+      },
+      advance: {
+        method: &quot;PATCH&quot;,
+        path: &quot;/api/v1/orders/{orderId}/status&quot;,
+        token: &quot;Status request&quot;,
+        steps: [
+          {
+            phase: &quot;The request&quot;,
+            title: &quot;The caller asks for one next state&quot;,
+            caption: &quot;The body contains exactly one target status.&quot;,
+            icon: &quot;move-right&quot;,
+            lane: 0,
+            state: &quot;SENT&quot;,
+            wire: &#x27;{&quot;status&quot;:&quot;SHIPPED&quot;}&#x27;,
+            code: [
+              &quot;&lt;code&gt;PATCH /api/v1/orders/{orderId}/status&lt;/code&gt; accepts JSON only.&quot;,
+              &quot;Only exact uppercase status names are recognized.&quot;
+            ]
+          },
+          {
+            phase: &quot;The HTTP gate&quot;,
+            title: &quot;Validate the UUID and strict body&quot;,
+            caption: &quot;Malformed IDs, JSON, fields, or blank status stop at the HTTP boundary.&quot;,
+            icon: &quot;shield-check&quot;,
+            lane: 1,
+            state: &quot;CHECKING&quot;,
+            wire: &quot;UUID + one status field&quot;,
+            code: [
+              &quot;&lt;code&gt;UpdateStatusRequest&lt;/code&gt; requires one nonblank &lt;code&gt;status&lt;/code&gt;.&quot;,
+              &quot;Unknown or duplicate fields and malformed UUIDs become &lt;code&gt;400&lt;/code&gt; at the HTTP boundary.&quot;
+            ]
+          },
+          {
+            phase: &quot;Translation&quot;,
+            title: &quot;The controller selects manual advancement&quot;,
+            caption: &quot;The controller forwards the UUID and requested status to one transactional service method.&quot;,
+            icon: &quot;route&quot;,
+            lane: 1,
+            state: &quot;ROUTED&quot;,
+            wire: &quot;OrderController.updateStatus()&quot;,
+            code: [
+              &quot;&lt;code&gt;OrderController.updateStatus()&lt;/code&gt; calls &lt;code&gt;OrderService.updateStatus()&lt;/code&gt;.&quot;,
+              &quot;The controller does not read the current order or decide whether the move is legal.&quot;
+            ]
+          },
+          {
+            phase: &quot;Business decision&quot;,
+            title: &quot;Find the one required predecessor&quot;,
+            caption: &quot;The domain rule allows only PENDING→PROCESSING→SHIPPED→DELIVERED.&quot;,
+            icon: &quot;git-commit-horizontal&quot;,
+            lane: 2,
+            state: &quot;DECIDING&quot;,
+            wire: &quot;SHIPPED requires persisted PROCESSING&quot;,
+            code: [
+              &quot;&lt;code&gt;OrderStatus.requiredPredecessorForManualTarget()&lt;/code&gt; owns the adjacent transition table.&quot;,
+              &quot;&lt;code&gt;OrderService.parseStatus()&lt;/code&gt; first accepts only exact uppercase names; unknown or lowercase text becomes &lt;code&gt;400&lt;/code&gt;.&quot;,
+              &quot;Targets &lt;code&gt;PENDING&lt;/code&gt; and &lt;code&gt;CANCELLED&lt;/code&gt; return &lt;code&gt;409&lt;/code&gt; before order existence is checked.&quot;,
+              &quot;Skips, reversals, repeats, terminal changes, and generic cancellation are never legal manual moves.&quot;
+            ]
+          },
+          {
+            phase: &quot;Conditional write&quot;,
+            title: &quot;Update only the state you expected&quot;,
+            caption: &quot;The database changes one row only if its ID and current status still match.&quot;,
+            icon: &quot;database-zap&quot;,
+            lane: [3, 4],
+            state: &quot;COMPARE + SET&quot;,
+            wire: &quot;WHERE id = ? AND status = PROCESSING&quot;,
+            code: [
+              &quot;&lt;code&gt;OrderRepository.updateStatusIfExpected()&lt;/code&gt; returns the affected-row count and clears the persistence context.&quot;,
+              &quot;The timestamp uses &lt;code&gt;GREATEST(updated_at, clockInstant)&lt;/code&gt;, so it never moves backward but need not strictly increase.&quot;,
+              &quot;One row means refetch success; zero means existence check → 404 if absent, 409 if present or a race was lost.&quot;
+            ]
+          },
+          {
+            phase: &quot;The response&quot;,
+            title: &quot;Commit, then return the updated order&quot;,
+            caption: &quot;A successful adjacent move commits before the API mapper returns full detail.&quot;,
+            icon: &quot;circle-check-big&quot;,
+            lane: 5,
+            state: &quot;200 OK&quot;,
+            outcomes: [[&quot;200&quot;, &quot;Full updated order&quot;]],
+            code: [
+              &quot;The shared transition helper refetches and detaches detail inside the transaction.&quot;,
+              &quot;After commit, &lt;code&gt;ApiMapper.toResponse()&lt;/code&gt; builds the &lt;code&gt;200&lt;/code&gt; body.&quot;,
+              &quot;Repeating the now-stale move returns &lt;code&gt;409&lt;/code&gt;, not another success.&quot;
+            ]
+          },
+          {
+            phase: &quot;Refusal paths&quot;,
+            title: &quot;Syntax, absence, and conflict stay distinct&quot;,
+            caption: &quot;400 means invalid input, 404 means a legal target on a missing order, and 409 means the move cannot happen.&quot;,
+            icon: &quot;octagon-x&quot;,
+            lane: 5,
+            state: &quot;REFUSED&quot;,
+            outcomes: [[&quot;400&quot;, &quot;Malformed or unknown&quot;], [&quot;404&quot;, &quot;Missing legal target&quot;], [&quot;409&quot;, &quot;Illegal or stale move&quot;]],
+            code: [
+              &quot;&lt;code&gt;400 INVALID_REQUEST&lt;/code&gt;: malformed UUID/body or unknown status.&quot;,
+              &quot;&lt;code&gt;404 ORDER_NOT_FOUND&lt;/code&gt;: valid missing UUID after a legal manual target reaches the conditional update.&quot;,
+              &quot;&lt;code&gt;409 ORDER_STATE_CONFLICT&lt;/code&gt;: illegal target, wrong current state, terminal state, repeat, or lost race.&quot;
+            ].concat(commonProblem)
+          }
+        ]
+      },
+      cancel: {
+        method: &quot;POST&quot;,
+        path: &quot;/api/v1/orders/{orderId}/cancel&quot;,
+        token: &quot;Cancel request&quot;,
+        steps: [
+          {
+            phase: &quot;The request&quot;,
+            title: &quot;The caller asks to cancel&quot;,
+            caption: &quot;The route carries the UUID and the request body must be absent or zero bytes.&quot;,
+            icon: &quot;ban&quot;,
+            lane: 0,
+            state: &quot;SENT&quot;,
+            wire: &quot;POST /api/v1/orders/7b3…e21/cancel&quot;,
+            code: [
+              &quot;Cancellation has a dedicated route; generic status PATCH cannot set &lt;code&gt;CANCELLED&lt;/code&gt;.&quot;,
+              &quot;A &lt;code&gt;Content-Type&lt;/code&gt; header alone is allowed when the body has zero bytes.&quot;
+            ]
+          },
+          {
+            phase: &quot;The HTTP gate&quot;,
+            title: &quot;Reject every non-empty body&quot;,
+            caption: &quot;Whitespace, JSON null, an empty object, or any other byte is invalid.&quot;,
+            icon: &quot;file-x-2&quot;,
+            lane: 1,
+            state: &quot;CHECKING&quot;,
+            wire: &quot;Body length must be 0&quot;,
+            code: [
+              &quot;&lt;code&gt;OrderController.cancel()&lt;/code&gt; reads optional raw bytes to distinguish truly absent input.&quot;,
+              &quot;Body validation happens before order lookup.&quot;,
+              &quot;Malformed UUID or any non-zero-length body returns &lt;code&gt;400 INVALID_REQUEST&lt;/code&gt;.&quot;
+            ]
+          },
+          {
+            phase: &quot;Translation&quot;,
+            title: &quot;The controller selects cancellation&quot;,
+            caption: &quot;The controller forwards only the UUID to the transactional service.&quot;,
+            icon: &quot;route&quot;,
+            lane: 1,
+            state: &quot;ROUTED&quot;,
+            wire: &quot;OrderController.cancel() → OrderService.cancel()&quot;,
+            code: [
+              &quot;No body mapper exists because cancellation accepts no content.&quot;,
+              &quot;The controller never deletes an order and never checks its status itself.&quot;
+            ]
+          },
+          {
+            phase: &quot;Business decision&quot;,
+            title: &quot;Cancellation has one legal source&quot;,
+            caption: &quot;Only a row still committed as PENDING may become CANCELLED.&quot;,
+            icon: &quot;git-branch&quot;,
+            lane: 2,
+            state: &quot;DECIDING&quot;,
+            wire: &quot;PENDING → CANCELLED&quot;,
+            code: [
+              &quot;&lt;code&gt;OrderService.cancel()&lt;/code&gt; calls the shared transition helper with fixed expected and target states.&quot;,
+              &quot;PROCESSING, SHIPPED, DELIVERED, and already CANCELLED orders are conflicts.&quot;
+            ]
+          },
+          {
+            phase: &quot;Conditional write&quot;,
+            title: &quot;Cancel only if PENDING still matches&quot;,
+            caption: &quot;The database predicate makes cancellation safe against the scheduler and other writers.&quot;,
+            icon: &quot;database-zap&quot;,
+            lane: [3, 4],
+            state: &quot;COMPARE + SET&quot;,
+            wire: &quot;WHERE id = ? AND status = PENDING&quot;,
+            code: [
+              &quot;&lt;code&gt;OrderRepository.updateStatusIfExpected()&lt;/code&gt; performs the atomic PENDING→CANCELLED update.&quot;,
+              &quot;One affected row is refetched; zero rows trigger an existence check.&quot;,
+              &quot;A scheduler race has one winner: final state is CANCELLED or PROCESSING, never both and never revived.&quot;
+            ]
+          },
+          {
+            phase: &quot;The response&quot;,
+            title: &quot;Commit and return CANCELLED&quot;,
+            caption: &quot;Cancellation changes status and returns the complete order; it never deletes rows.&quot;,
+            icon: &quot;circle-check-big&quot;,
+            lane: 5,
+            state: &quot;200 OK&quot;,
+            outcomes: [[&quot;200&quot;, &quot;Full order · CANCELLED&quot;]],
+            code: [
+              &quot;The updated detail is detached inside the transaction and mapped to HTTP after commit.&quot;,
+              &quot;Repeating a successful cancel finds a non-pending order and returns &lt;code&gt;409&lt;/code&gt;.&quot;
+            ]
+          },
+          {
+            phase: &quot;Refusal paths&quot;,
+            title: &quot;Invalid, missing, and too-late are separate&quot;,
+            caption: &quot;400 means bad input, 404 means the order is absent, and 409 means it is no longer pending.&quot;,
+            icon: &quot;octagon-x&quot;,
+            lane: 5,
+            state: &quot;REFUSED&quot;,
+            outcomes: [[&quot;400&quot;, &quot;UUID or body&quot;], [&quot;404&quot;, &quot;ORDER_NOT_FOUND&quot;], [&quot;409&quot;, &quot;Not pending or lost race&quot;]],
+            code: [
+              &quot;&lt;code&gt;400 INVALID_REQUEST&lt;/code&gt;: malformed UUID or any non-empty body.&quot;,
+              &quot;&lt;code&gt;404 ORDER_NOT_FOUND&lt;/code&gt;: valid UUID absent.&quot;,
+              &quot;&lt;code&gt;409 ORDER_STATE_CONFLICT&lt;/code&gt;: any existing non-pending state or a cancellation race lost.&quot;
+            ].concat(commonProblem)
+          }
+        ]
+      }
+    };
+
+    const picker = root.querySelector(&quot;#api-picker&quot;);
+    const count = root.querySelector(&quot;#api-step-count&quot;);
+    const progress = root.querySelector(&quot;#api-progress&quot;);
+    const progressFill = root.querySelector(&quot;#api-progress-fill&quot;);
+    const method = root.querySelector(&quot;#api-method&quot;);
+    const path = root.querySelector(&quot;#api-path&quot;);
+    const phase = root.querySelector(&quot;#api-phase&quot;);
+    const title = root.querySelector(&quot;#api-scene-title&quot;);
+    const caption = root.querySelector(&quot;#api-caption&quot;);
+    const liveSummary = root.querySelector(&quot;#api-live-summary&quot;);
+    const tokenLabel = root.querySelector(&quot;#api-token-label&quot;);
+    const tokenState = root.querySelector(&quot;#api-token-state&quot;);
+    const stage = root.querySelector(&quot;#api-stage&quot;);
+    const codePanel = root.querySelector(&quot;#api-code&quot;);
+    const codeTitle = root.querySelector(&quot;#api-code-title&quot;);
+    const codeList = root.querySelector(&quot;#api-code-list&quot;);
+    const back = root.querySelector(&quot;#api-back&quot;);
+    const play = root.querySelector(&quot;#api-play&quot;);
+    const next = root.querySelector(&quot;#api-next&quot;);
+    const codeToggle = root.querySelector(&quot;#api-code-toggle&quot;);
+
+    let apiKey = &quot;create&quot;;
+    let stepIndex = 0;
+    let direction = &quot;forward&quot;;
+    let timer = null;
+    let showingCode = false;
+
+    const escapeHtml = (value) =&gt; String(value)
+      .replaceAll(&quot;&amp;&quot;, &quot;&amp;amp;&quot;)
+      .replaceAll(&quot;&lt;&quot;, &quot;&amp;lt;&quot;)
+      .replaceAll(&quot;&gt;&quot;, &quot;&amp;gt;&quot;)
+      .replaceAll(&#x27;&quot;&#x27;, &quot;&amp;quot;&quot;)
+      .replaceAll(&quot;&#x27;&quot;, &quot;&amp;#039;&quot;);
+
+    const icon = (name) =&gt; &#x27;&lt;i data-lucide=&quot;&#x27; + name + &#x27;&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&#x27;;
+
+    const railHtml = (activeLane) =&gt; {
+      const activeLanes = Array.isArray(activeLane) ? activeLane : [activeLane];
+      const farthestLane = Math.max(...activeLanes);
+      return laneLabels.map((lane, index) =&gt; {
+        const isCurrent = activeLanes.includes(index);
+        const node = &#x27;&lt;div class=&quot;api-rail-node&#x27; +
+          (isCurrent ? &#x27; is-active&#x27; : &#x27;&#x27;) + &#x27;&quot;&#x27; +
+          (isCurrent ? &#x27; aria-current=&quot;step&quot; aria-label=&quot;&#x27; + lane[1] + &#x27;, current step&quot;&#x27; : &#x27;&#x27;) +
+          &#x27;&gt;&#x27; +
+          icon(lane[0]) + &#x27;&lt;span class=&quot;text-small&quot;&gt;&#x27; + lane[1] + &#x27;&lt;/span&gt;&lt;/div&gt;&#x27;;
+        if (index === laneLabels.length - 1) return node;
+        return node + &#x27;&lt;span class=&quot;api-rail-arrow&#x27; +
+          (index &lt; farthestLane ? &#x27; is-passed&#x27; : &#x27;&#x27;) + &#x27;&quot;&gt;&#x27; +
+          icon(&quot;arrow-right&quot;) + &#x27;&lt;/span&gt;&#x27;;
+      }).join(&quot;&quot;);
+    };
+
+    const outcomesHtml = (outcomes) =&gt; {
+      if (!outcomes || outcomes.length === 0) return &quot;&quot;;
+      return &#x27;&lt;div class=&quot;api-outcomes&quot;&gt;&#x27; + outcomes.map((outcome) =&gt;
+        &#x27;&lt;span class=&quot;viz-badge&#x27; + (String(outcome[0]).startsWith(&quot;2&quot;) ? &#x27;&#x27; : &#x27; api-outcome-error&#x27;) + &#x27;&quot;&gt;&#x27; +
+        escapeHtml(outcome[0]) + &#x27; · &#x27; + escapeHtml(outcome[1]) + &#x27;&lt;/span&gt;&#x27;
+      ).join(&quot;&quot;) + &#x27;&lt;/div&gt;&#x27;;
+    };
+
+    const stop = () =&gt; {
+      if (timer !== null) window.clearTimeout(timer);
+      timer = null;
+      play.textContent = &quot;Play API&quot;;
+      play.setAttribute(&quot;aria-pressed&quot;, &quot;false&quot;);
+    };
+
+    const schedule = () =&gt; {
+      if (timer === null) return;
+      timer = window.setTimeout(() =&gt; {
+        const steps = apis[apiKey].steps;
+        if (stepIndex &gt;= steps.length - 1) {
+          stop();
+          return;
+        }
+        direction = &quot;forward&quot;;
+        stepIndex += 1;
+        render();
+        schedule();
+      }, 5200);
+    };
+
+    const refreshIcons = () =&gt; {
+      if (window.lucide &amp;&amp; typeof window.lucide.createIcons === &quot;function&quot;) {
+        window.lucide.createIcons({ attrs: { width: 16, height: 16 } });
+      }
+    };
+
+    const render = () =&gt; {
+      const api = apis[apiKey];
+      const step = api.steps[stepIndex];
+      const total = api.steps.length;
+
+      count.textContent = &quot;Step &quot; + (stepIndex + 1) + &quot; of &quot; + total;
+      progress.setAttribute(&quot;aria-valuemax&quot;, String(total));
+      progress.setAttribute(&quot;aria-valuenow&quot;, String(stepIndex + 1));
+      progressFill.style.width = (((stepIndex + 1) / total) * 100) + &quot;%&quot;;
+      method.textContent = api.method;
+      path.textContent = api.path;
+      phase.textContent = step.phase;
+      title.textContent = step.title;
+      caption.textContent = step.caption;
+      const activeLanes = Array.isArray(step.lane) ? step.lane : [step.lane];
+      const activeLaneText = activeLanes.map((index) =&gt; laneLabels[index][1]).join(&quot; and &quot;);
+      liveSummary.textContent = &quot;Step &quot; + (stepIndex + 1) + &quot; of &quot; + total + &quot;. &quot; +
+        activeLaneText + &quot;. &quot; + step.title + &quot;. &quot; + step.caption;
+      tokenLabel.textContent = api.token;
+      tokenState.textContent = step.state;
+
+      stage.setAttribute(&quot;aria-label&quot;, api.method + &quot; &quot; + api.path + &quot;: &quot; + step.caption);
+      stage.innerHTML =
+        &#x27;&lt;div class=&quot;api-scene&quot;&gt;&#x27; +
+          &#x27;&lt;div class=&quot;api-rail&quot;&gt;&#x27; + railHtml(step.lane) + &#x27;&lt;/div&gt;&#x27; +
+          &#x27;&lt;div class=&quot;api-focus&#x27; + (direction === &quot;backward&quot; ? &#x27; is-backward&#x27; : &#x27;&#x27;) + &#x27;&quot;&gt;&#x27; +
+            &#x27;&lt;span class=&quot;viz-badge api-lane-summary&quot;&gt;Now: &#x27; + escapeHtml(activeLaneText) + &#x27;&lt;/span&gt;&#x27; +
+            &#x27;&lt;span class=&quot;api-symbol&quot;&gt;&#x27; + icon(step.icon) + &#x27;&lt;/span&gt;&#x27; +
+            &#x27;&lt;strong&gt;&#x27; + escapeHtml(step.title) + &#x27;&lt;/strong&gt;&#x27; +
+            (step.wire ? &#x27;&lt;pre class=&quot;card api-wire&quot;&gt;&lt;code&gt;&#x27; + escapeHtml(step.wire) + &#x27;&lt;/code&gt;&lt;/pre&gt;&#x27; : &#x27;&#x27;) +
+            outcomesHtml(step.outcomes) +
+          &#x27;&lt;/div&gt;&#x27; +
+        &#x27;&lt;/div&gt;&#x27;;
+
+      codeTitle.textContent = &quot;Behind step &quot; + (stepIndex + 1) + &quot;: &quot; + step.title;
+      codeList.innerHTML = step.code.map((line) =&gt; &quot;&lt;li&gt;&quot; + line + &quot;&lt;/li&gt;&quot;).join(&quot;&quot;);
+      back.disabled = stepIndex === 0;
+      next.disabled = stepIndex === total - 1;
+
+      if (showingCode) {
+        stage.hidden = true;
+        codePanel.hidden = false;
+      } else {
+        stage.hidden = false;
+        codePanel.hidden = true;
+      }
+
+      refreshIcons();
+    };
+
+    picker.addEventListener(&quot;change&quot;, () =&gt; {
+      stop();
+      apiKey = picker.value;
+      stepIndex = 0;
+      direction = &quot;forward&quot;;
+      showingCode = false;
+      codeToggle.textContent = &quot;Show code&quot;;
+      codeToggle.setAttribute(&quot;aria-pressed&quot;, &quot;false&quot;);
+      play.disabled = false;
+      render();
+    });
+
+    back.addEventListener(&quot;click&quot;, () =&gt; {
+      stop();
+      if (stepIndex &gt; 0) {
+        direction = &quot;backward&quot;;
+        stepIndex -= 1;
+        render();
+      }
+    });
+
+    next.addEventListener(&quot;click&quot;, () =&gt; {
+      stop();
+      if (stepIndex &lt; apis[apiKey].steps.length - 1) {
+        direction = &quot;forward&quot;;
+        stepIndex += 1;
+        render();
+      }
+    });
+
+    play.addEventListener(&quot;click&quot;, () =&gt; {
+      if (showingCode) return;
+      if (timer !== null) {
+        stop();
+        return;
+      }
+      if (stepIndex &gt;= apis[apiKey].steps.length - 1) {
+        stepIndex = 0;
+        direction = &quot;forward&quot;;
+        render();
+      }
+      play.textContent = &quot;Pause&quot;;
+      play.setAttribute(&quot;aria-pressed&quot;, &quot;true&quot;);
+      timer = 1;
+      schedule();
+    });
+
+    codeToggle.addEventListener(&quot;click&quot;, () =&gt; {
+      showingCode = !showingCode;
+      stop();
+      codeToggle.textContent = showingCode ? &quot;Show story&quot; : &quot;Show code&quot;;
+      codeToggle.setAttribute(&quot;aria-pressed&quot;, String(showingCode));
+      play.disabled = showingCode;
+      render();
+    });
+
+    render();
+  })();
+&lt;/script&gt;
+
+&lt;script src=&quot;https://unpkg.com/@floating-ui/core@1.7.3/dist/floating-ui.core.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;https://unpkg.com/@floating-ui/dom@1.7.4/dist/floating-ui.dom.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  if (window.FloatingUIDOM == null) {
+    return;
+  }
+  const { autoUpdate, computePosition, flip, offset, shift, size } =
+    window.FloatingUIDOM;
+  const tooltipPlacements = new Set([&quot;top&quot;, &quot;right&quot;, &quot;bottom&quot;, &quot;left&quot;]);
+  const tooltipId = `codex-visualization-tooltip-${
+    window.crypto?.randomUUID?.() ?? Date.now().toString(36)
+  }`;
+  const tooltipGap = 5;
+  const hoverDelay = 700;
+  const skipDelay = 300;
+  let activeTrigger = null;
+  let pendingTrigger = null;
+  let tooltip = null;
+  let openTimeout = null;
+  let autoUpdateCleanup = null;
+  let positionRequest = 0;
+  let skipDelayUntil = 0;
+
+  const getTrigger = (target) =&gt;
+    target?.nodeType === Node.ELEMENT_NODE
+      ? target.closest(&quot;[data-tooltip]&quot;)
+      : null;
+  const containsTarget = (trigger, target) =&gt;
+    target?.nodeType != null &amp;&amp; trigger.contains(target);
+  const getContent = (trigger) =&gt;
+    trigger.getAttribute(&quot;data-tooltip&quot;)?.trim() ?? &quot;&quot;;
+  const getPlacement = (trigger) =&gt; {
+    const placement = trigger.getAttribute(&quot;data-tooltip-placement&quot;);
+    return tooltipPlacements.has(placement) ? placement : &quot;top&quot;;
+  };
+  const getTooltip = () =&gt; {
+    if (tooltip == null) {
+      tooltip = document.createElement(&quot;div&quot;);
+      tooltip.id = tooltipId;
+      tooltip.className = &quot;tooltip&quot;;
+      tooltip.setAttribute(&quot;role&quot;, &quot;tooltip&quot;);
+    }
+    return tooltip;
+  };
+  const setDescribedBy = (trigger, described) =&gt; {
+    const ids = new Set(
+      (trigger.getAttribute(&quot;aria-describedby&quot;) ?? &quot;&quot;)
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+    if (described) {
+      ids.add(tooltipId);
+    } else {
+      ids.delete(tooltipId);
+    }
+    if (ids.size === 0) {
+      trigger.removeAttribute(&quot;aria-describedby&quot;);
+    } else {
+      trigger.setAttribute(&quot;aria-describedby&quot;, [...ids].join(&quot; &quot;));
+    }
+  };
+  const clearOpenTimeout = () =&gt; {
+    if (openTimeout != null) {
+      window.clearTimeout(openTimeout);
+      openTimeout = null;
+    }
+    pendingTrigger = null;
+  };
+  const closeTooltip = (activateSkipDelay = true) =&gt; {
+    clearOpenTimeout();
+    positionRequest += 1;
+    autoUpdateCleanup?.();
+    autoUpdateCleanup = null;
+    if (activeTrigger == null) {
+      return;
+    }
+    setDescribedBy(activeTrigger, false);
+    activeTrigger = null;
+    tooltip?.remove();
+    if (activateSkipDelay) {
+      skipDelayUntil = Date.now() + skipDelay;
+    }
+  };
+  const updatePosition = (trigger, floating) =&gt; {
+    const request = ++positionRequest;
+    void computePosition(trigger, floating, {
+      middleware: [
+        offset(tooltipGap),
+        flip({ padding: tooltipGap }),
+        shift({ padding: tooltipGap }),
+        size({
+          padding: tooltipGap,
+          apply({ availableHeight, availableWidth, elements }) {
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-width&quot;,
+              `${Math.max(0, availableWidth)}px`,
+            );
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-height&quot;,
+              `${Math.max(0, availableHeight)}px`,
+            );
+          },
+        }),
+      ],
+      placement: getPlacement(trigger),
+      strategy: &quot;fixed&quot;,
+    })
+      .then(({ x, y }) =&gt; {
+        if (activeTrigger !== trigger || request !== positionRequest) {
+          return;
+        }
+        const scale = window.devicePixelRatio || 1;
+        floating.style.transform = `translate(${Math.round(x * scale) / scale}px, ${Math.round(y * scale) / scale}px)`;
+        floating.style.visibility = &quot;visible&quot;;
+      })
+      .catch(() =&gt; {
+        if (activeTrigger === trigger &amp;&amp; request === positionRequest) {
+          closeTooltip(false);
+        }
+      });
+  };
+  const openTooltip = (trigger) =&gt; {
+    const content = getContent(trigger);
+    if (!trigger.isConnected || content.length === 0) {
+      return;
+    }
+    clearOpenTimeout();
+    if (activeTrigger === trigger) {
+      return;
+    }
+    closeTooltip();
+    const floating = getTooltip();
+    floating.textContent = content;
+    floating.style.visibility = &quot;hidden&quot;;
+    floating.style.transform = &quot;translate(0, 0)&quot;;
+    document.body.appendChild(floating);
+    activeTrigger = trigger;
+    setDescribedBy(trigger, true);
+    autoUpdateCleanup = autoUpdate(trigger, floating, () =&gt; {
+      updatePosition(trigger, floating);
+    });
+  };
+  const requestOpen = (trigger, immediate = false) =&gt; {
+    if (
+      getContent(trigger).length === 0 ||
+      activeTrigger === trigger ||
+      pendingTrigger === trigger
+    ) {
+      return;
+    }
+    clearOpenTimeout();
+    pendingTrigger = trigger;
+    const delay =
+      immediate || activeTrigger != null || Date.now() &lt; skipDelayUntil
+        ? 0
+        : hoverDelay;
+    if (delay === 0) {
+      openTooltip(trigger);
+      return;
+    }
+    openTimeout = window.setTimeout(() =&gt; {
+      openTimeout = null;
+      pendingTrigger = null;
+      openTooltip(trigger);
+    }, delay);
+  };
+  const handlePointerOpen = (event) =&gt; {
+    if (event.pointerType === &quot;touch&quot;) {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    requestOpen(trigger);
+  };
+  const handleLeave = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handleFocusIn = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (trigger?.matches(&quot;:focus-visible&quot;)) {
+      requestOpen(trigger, true);
+    }
+  };
+  const handleKeyDown = (event) =&gt; {
+    if (event.key === &quot;Escape&quot;) {
+      closeTooltip();
+    }
+  };
+  const handleContextMenu = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const destroy = () =&gt; {
+    closeTooltip(false);
+    document.removeEventListener(&quot;pointerover&quot;, handlePointerOpen);
+    document.removeEventListener(&quot;pointerout&quot;, handleLeave);
+    document.removeEventListener(&quot;focusin&quot;, handleFocusIn);
+    document.removeEventListener(&quot;focusout&quot;, handleLeave);
+    document.removeEventListener(&quot;keydown&quot;, handleKeyDown);
+    document.removeEventListener(&quot;contextmenu&quot;, handleContextMenu);
+    tooltip = null;
+  };
+
+  document.addEventListener(&quot;pointerover&quot;, handlePointerOpen);
+  document.addEventListener(&quot;pointerout&quot;, handleLeave);
+  document.addEventListener(&quot;focusin&quot;, handleFocusIn);
+  document.addEventListener(&quot;focusout&quot;, handleLeave);
+  document.addEventListener(&quot;keydown&quot;, handleKeyDown);
+  document.addEventListener(&quot;contextmenu&quot;, handleContextMenu);
+  window.addEventListener(&quot;pagehide&quot;, destroy, { once: true });
+})();
+&lt;/script&gt;
+&lt;script id=&quot;codex-visualization-lucide&quot; async src=&quot;https://unpkg.com/lucide@1.17.0/dist/umd/lucide.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  const initialize = () =&gt; {
+    globalThis.lucide?.createIcons({ attrs: { width: 16, height: 16 } });
+  };
+  if (globalThis.lucide != null) {
+    initialize();
+    return;
+  }
+  document
+    .getElementById(&quot;codex-visualization-lucide&quot;)
+    ?.addEventListener(&quot;load&quot;, initialize, { once: true });
+})();
+&lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+"></iframe>
+</body>
+</html>

@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **Complete**; Phases 0–5 verified on 2026-07-13 |
+| Status | **Complete**; Phases 0–5 verified on 2026-07-13 and package-navigation hardening verified on 2026-07-15 |
 | Working root | `backend/ordersystem/` |
 | Target package | `com.rkk.orderprocessing` |
 | Sources of truth | [Documentation Index](INDEX.md), [PRD](PRD.md), [TRD](TRD.md), [Architecture](ARCHITECTURE.md), [LLD](LLD.md), [API Contract](API_CONTRACT.md), [Data Model](DATA_MODEL.md) |
@@ -72,8 +72,9 @@ application context starts after Flyway and JPA validation.
 - Add `order/domain/OrderStatus.java` with the framework-independent transition rule.
 - Add `order/persistence/OrderEntity.java`, `OrderItemEntity.java`, and
   `OrderRepository.java`; use named creation methods to establish the pending
-  aggregate and keep item validation in the application boundary and database
-  constraints rather than adding a factory hierarchy or duplicate models.
+  aggregate, including a defensive 1–100 item cardinality guard. Keep detailed
+  field validation in the application boundary and database constraints rather
+  than adding a factory hierarchy or duplicate models.
 
 **Check:** Flyway migrates empty Testcontainers PostgreSQL; Hibernate validates;
 domain and repository tests cover every invariant. **Risks:** JPA cascade/fetch
@@ -86,15 +87,17 @@ PostgreSQL 17.6; V1 migrates an empty schema before Hibernate validation.
 ### Phase 3 — Deliver HTTP vertical slices (complete)
 
 1. **Create + retrieve:** add `order/application/OrderService.java`, command and
-   result records, `order/api/OrderController.java`, request/response DTOs, and
-   `OrderApiMapper`. Persist aggregate creation in one transaction; API code must
+   result records under `order/application/command` and
+   `order/application/result`, `order/api/OrderController.java`, request/response
+   records under `order/api/request` and `order/api/response`, and
+   `ApiMapper`. Persist aggregate creation in one transaction; API code must
    not import persistence types.
 2. **List:** add optional exact `OrderStatus`, validated page/size, response
    metadata, and fixed `createdAt DESC, id DESC` ordering. Prove every order is
    traversable across stable pages without duplicates or omissions.
 3. **Advance + cancel:** add expected-status conditional repository operations,
-   domain exception types, and `shared/api/ApiExceptionHandler.java` returning
-   stable problem details.
+   application exception types under `order/application/exception`, and
+   `shared/api/ApiExceptionHandler.java` returning stable problem details.
 
 **Check per slice:** domain/service tests, MockMvc contract tests, PostgreSQL IT,
 then a curl smoke matching [API Contract](API_CONTRACT.md). **Risks:** accepting
@@ -109,8 +112,8 @@ Details, and sanitized failures. Newman then verified the running endpoints.
 
 - Add repository bulk mutation `PENDING -> PROCESSING` with one conditional SQL
   statement that also updates UTC time and returns affected count.
-- Add `order/application/PendingOrderProcessor.java` as the directly testable
-  transactional use case and `order/job/PendingOrderScheduler.java` as the thin UTC cron
+- Add `order/application/OrderProcessor.java` as the directly testable
+  transactional use case and `order/job/OrderScheduler.java` as the thin UTC cron
   adapter (`0 */5 * * * *`).
 - Record post-commit scheduler metrics/logs for outcome, affected rows, and
   duration without request/item/customer data or raw throwable details.
@@ -150,6 +153,59 @@ scheduler-handler smoke passed. Every PRD row has evidence.
 **Deployment boundary:** local tooling differs from managed Supabase, and public
 deployment still requires the authentication/TLS/role/operating controls kept
 outside this assessment.
+
+### Post-completion package-navigation hardening (complete)
+
+- Split HTTP carriers into `order.api.request` and `order.api.response`; split
+  application carriers/errors into `order.application.command`, `result`, and
+  `exception`, while keeping use-case services and mapping at the application
+  root.
+- Defensively snapshot create-request items without hiding nulls from Jakarta
+  Validation, and reject aggregate item counts outside 1–100 before attaching
+  children.
+- Extend source-boundary checks for the semantic packages and extend the 90%
+  application branch-coverage rule to application subpackages.
+
+**Check:** HTTP/schema/lifecycle behavior is unchanged; stale package imports are
+absent; focused tests and `./mvnw clean verify` pass.
+**Evidence:** 77 fast/unit/MockMvc tests and 26 PostgreSQL integration tests (103
+total) passed on 2026-07-15 with all JaCoCo gates met.
+
+### Post-completion API discovery integration (complete)
+
+- Added Springdoc Swagger UI for local API discovery while keeping the checked-in
+  `openapi/openapi.yaml` artifact as the exact machine-readable HTTP contract.
+- Disabled Springdoc's inferred default document because it represented several
+  controller conventions incorrectly, including create status/headers, list
+  query parameters, cancellation bodies, and problem responses.
+- Serve the static contract and Swagger UI outside production only; the `prod`
+  profile disables both documentation endpoints.
+
+**Check:** the checked-in specification describes exactly five operations, the
+UI loads it without browser-console errors, and production returns 404 for the
+specification endpoint.
+**Evidence:** `./mvnw clean verify` passed 81 fast/unit/MockMvc tests and 26
+PostgreSQL integration tests (107 total) with all JaCoCo gates met. Redocly
+validated the specification with one non-blocking missing-license warning; no
+license was invented because the repository does not declare one.
+
+### Post-completion recruiter demo data (complete)
+
+- Made the default `./dev` assessment path load the recruiter presentation profile;
+  `./dev start` keeps the normal scheduler and does not load or reset fixtures.
+- Added a profile-isolated Flyway callback with fixed, repeatable orders covering
+  every lifecycle state; other profiles do not run the callback.
+- Disabled scheduling in demo mode so seeded states remain stable, and added
+  executable request/response examples to the checked-in OpenAPI contract.
+
+**Check:** demo startup exposes all five states, repeated startup does not
+duplicate fixtures, normal profiles do not load the callback, Swagger shows useful
+examples, and the complete verification build passes.
+
+**Evidence:** `./mvnw clean verify` passed 81 fast/unit/MockMvc tests and 27
+Testcontainers PostgreSQL integration tests (108 total). A live isolated-port
+run of plain `./dev` returned all five fixed states and the seeded detail through
+the real API; Swagger and the checked-in examples were reachable.
 
 ## 3. Change Discipline and Stop Conditions
 

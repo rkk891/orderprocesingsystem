@@ -13,7 +13,8 @@ import jakarta.persistence.Table;
 import java.util.Objects;
 
 /**
- * Immutable line-item data belonging to an {@link OrderEntity} aggregate.
+ * Database representation of one item saved as part of an {@link OrderEntity}.
+ * Product and quantity values never change after the item is created.
  */
 @Entity
 @Table(name = "order_items")
@@ -48,11 +49,25 @@ public class OrderItemEntity {
 
     /**
      * Creates a line item from values already validated at the application boundary.
+     *
+     * @param position the zero-based index of this item in the order list.
+     * @param productId the product identifier supplied by the caller.
+     * @param quantity the number of items ordered.
+     * @return a new item that is not yet linked to an order
+     * @throws IllegalArgumentException if quantity or position exceed PostgreSQL smallint limits.
+     * @throws NullPointerException if productId is null.
      */
     public static OrderItemEntity create(int position, String productId, int quantity) {
         return new OrderItemEntity(position, productId, quantity);
     }
 
+    /**
+     * Links this item to its order before JPA saves both records.
+     *
+     * @param order the parent OrderEntity.
+     * @throws IllegalStateException if the item is already bound to a different order.
+     * @throws NullPointerException if order is null.
+     */
     void attachTo(OrderEntity order) {
         if (this.order != null && this.order != order) {
             throw new IllegalStateException("Order item is already attached to another order");
@@ -60,7 +75,12 @@ public class OrderItemEntity {
         this.order = Objects.requireNonNull(order, "order must not be null");
     }
 
-    /** Fails before aggregate construction mutates any item when this item already has a parent. */
+    /**
+     * Checks that the item does not already belong to an order. The order checks every item first,
+     * so a failure cannot leave only part of the supplied list attached.
+     *
+     * @throws IllegalStateException if this item is already attached.
+     */
     void requireUnattached() {
         if (order != null) {
             throw new IllegalStateException("Order item is already attached to another order");

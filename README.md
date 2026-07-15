@@ -43,6 +43,16 @@ Detailed design and concurrency rationale are documented in
 4. [docs/DATA_MODEL.md](docs/DATA_MODEL.md) — PostgreSQL schema and constraints.
 5. [docs/INDEX.md](docs/INDEX.md) — complete documentation map.
 
+Open [order-system-atlas.html](order-system-atlas.html) for a two-minute,
+one-scene-at-a-time story of the full project. Play it in plain language, then
+use **Show code** only when exact classes and methods are useful. It is a derived
+explainer; the indexed documents above and current source remain authoritative.
+
+Open [order-api-theater.html](order-api-theater.html) for a separate,
+endpoint-by-endpoint walkthrough of all five HTTP routes. Choose one API, press
+**Play API**, and reveal exact controller, service, repository, database, and
+response behavior only when needed.
+
 ## Repository Layout
 
 ```text
@@ -87,6 +97,35 @@ With the application running, exercise every V1 route from a second shell:
 ```bash
 npx --yes newman@6.2.1 run postman/order-processing-smoke.postman_collection.json --reporters cli
 ```
+
+For interactive API exploration, open
+`http://127.0.0.1:8080/swagger-ui.html`. Swagger UI reads the checked-in
+`/openapi.yaml` contract, so custom status codes, query parameters, body rules,
+and Problem Details remain explicit instead of relying on controller inference.
+Both the UI and contract route are disabled by the `prod` profile.
+
+## Recruiter Demo
+
+The default assessment launcher starts the service with sample orders:
+
+```bash
+./dev
+```
+
+Then open `http://127.0.0.1:8080/swagger-ui.html` and execute **List orders**.
+The demo profile inserts five fixed orders covering `PENDING`, `PROCESSING`,
+`SHIPPED`, `DELIVERED`, and `CANCELLED`. It also disables the scheduler so those
+states remain stable during the walkthrough. Swagger shows useful request and
+response examples before execution; use the fixed pending ID
+`11111111-1111-4111-8111-111111111111` for the detail, status, or cancel routes.
+
+Demo fixtures are repeatable and isolated to the launcher's `demo` profile;
+restarting `./dev` restores the five fixed demo rows to their documented states.
+Tests and the existing hardened profile never load them. Use `./dev start` when
+showing the real five-minute processor without loading or resetting fixtures, or
+run the Newman collection below for a fresh end-to-end lifecycle proof. Local
+Supabase preserves rows, so orders from an earlier demo remain until the database
+is reset; the next plain `./dev` restores the five fixed demo rows.
 
 ## Verification
 

@@ -8,6 +8,12 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.rkk.orderprocessing.order.application.command.CreateOrderData;
+import com.rkk.orderprocessing.order.application.exception.InvalidOrderException;
+import com.rkk.orderprocessing.order.application.exception.OrderNotFoundException;
+import com.rkk.orderprocessing.order.application.exception.OrderStateConflictException;
+import com.rkk.orderprocessing.order.application.result.OrderDetails;
+import com.rkk.orderprocessing.order.application.result.OrderPage;
 import com.rkk.orderprocessing.order.domain.OrderStatus;
 import com.rkk.orderprocessing.order.persistence.OrderEntity;
 import com.rkk.orderprocessing.order.persistence.OrderRepository;
@@ -31,7 +37,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
-/** Focused application tests for validation, transactions' decision logic, and race classification. */
+/** Checks validation, use-case decisions, and missing-order versus state-conflict results. */
 @ExtendWith(MockitoExtension.class)
 class OrderServiceTest {
 
@@ -42,16 +48,16 @@ class OrderServiceTest {
     @Mock
     private OrderRepository repository;
 
-    private final OrderResultMapper mapper = new OrderResultMapper();
+    private final DataMapper mapper = new DataMapper();
 
     @Test
     void createBuildsOnePendingAggregateAndPreservesExactProductIds() {
         when(repository.save(any(OrderEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
         OrderService service = service();
 
-        OrderDetailsResult result = service.create(new CreateOrderCommand(List.of(
-                new CreateOrderCommand.Item(" SKU ", 2),
-                new CreateOrderCommand.Item("sku", 1))));
+        OrderDetails result = service.create(new CreateOrderData(List.of(
+                new CreateOrderData.Item(" SKU ", 2),
+                new CreateOrderData.Item("sku", 1))));
 
         ArgumentCaptor<OrderEntity> captor = ArgumentCaptor.forClass(OrderEntity.class);
         verify(repository).save(captor.capture());
@@ -61,14 +67,14 @@ class OrderServiceTest {
         assertThat(saved.getUpdatedAt()).isEqualTo(NOW);
         assertThat(saved.getItems()).extracting("productId").containsExactly(" SKU ", "sku");
         assertThat(result.status()).isEqualTo("PENDING");
-        assertThat(result.items()).extracting(OrderDetailsResult.Item::productId)
+        assertThat(result.items()).extracting(OrderDetails.Item::productId)
                 .containsExactly(" SKU ", "sku");
     }
 
     @ParameterizedTest
     @MethodSource("invalidCreateCommands")
-    void createRejectsEveryAggregateInvariant(CreateOrderCommand command, String expectedField) {
-        assertThatThrownBy(() -> service().create(command))
+    void createRejectsEveryAggregateInvariant(CreateOrderData data, String expectedField) {
+        assertThatThrownBy(() -> service().create(data))
                 .isInstanceOf(InvalidOrderException.class)
                 .satisfies(exception -> assertThat(((InvalidOrderException) exception).violations())
                         .extracting(InvalidOrderException.Violation::field)
@@ -106,8 +112,8 @@ class OrderServiceTest {
         when(repository.findSummaryPageByStatus(OrderStatus.CANCELLED, PageRequest.of(0, 20)))
                 .thenReturn(page);
 
-        OrderPageResult unfiltered = service().list(null, 0, 20);
-        OrderPageResult filtered = service().list("CANCELLED", 0, 20);
+        OrderPage unfiltered = service().list(null, 0, 20);
+        OrderPage filtered = service().list("CANCELLED", 0, 20);
 
         assertThat(unfiltered.content()).hasSize(1);
         assertThat(filtered.content().getFirst().itemCount()).isEqualTo(3);
@@ -133,14 +139,14 @@ class OrderServiceTest {
         when(repository.findDetailById(ORDER_ID))
                 .thenReturn(java.util.Optional.of(updatedEntity));
 
-        assertThat(service().advanceStatus(ORDER_ID, targetName).status()).isEqualTo(targetName);
+        assertThat(service().updateStatus(ORDER_ID, targetName).status()).isEqualTo(targetName);
         verify(repository).updateStatusIfExpected(ORDER_ID, expected, target, NOW);
     }
 
     @ParameterizedTest
     @MethodSource("forbiddenManualTargets")
     void advanceRejectsKnownButForbiddenTargetsAsConflicts(String target) {
-        assertThatThrownBy(() -> service().advanceStatus(ORDER_ID, target))
+        assertThatThrownBy(() -> service().updateStatus(ORDER_ID, target))
                 .isInstanceOf(OrderStateConflictException.class);
         verify(repository, never()).updateStatusIfExpected(any(), any(), any(), any());
     }
@@ -148,7 +154,7 @@ class OrderServiceTest {
     @ParameterizedTest
     @MethodSource("invalidStatusNames")
     void advanceRejectsUnknownStatusTextAsInvalidInput(String target) {
-        assertThatThrownBy(() -> service().advanceStatus(ORDER_ID, target))
+        assertThatThrownBy(() -> service().updateStatus(ORDER_ID, target))
                 .isInstanceOf(InvalidOrderException.class);
     }
 
@@ -157,11 +163,11 @@ class OrderServiceTest {
         when(repository.updateStatusIfExpected(
                 ORDER_ID, OrderStatus.PENDING, OrderStatus.PROCESSING, NOW)).thenReturn(0);
         when(repository.existsById(ORDER_ID)).thenReturn(false);
-        assertThatThrownBy(() -> service().advanceStatus(ORDER_ID, "PROCESSING"))
+        assertThatThrownBy(() -> service().updateStatus(ORDER_ID, "PROCESSING"))
                 .isInstanceOf(OrderNotFoundException.class);
 
         when(repository.existsById(ORDER_ID)).thenReturn(true);
-        assertThatThrownBy(() -> service().advanceStatus(ORDER_ID, "PROCESSING"))
+        assertThatThrownBy(() -> service().updateStatus(ORDER_ID, "PROCESSING"))
                 .isInstanceOf(OrderStateConflictException.class);
     }
 
@@ -169,14 +175,14 @@ class OrderServiceTest {
     void transitionRejectsImpossibleRepositoryOutcomes() {
         when(repository.updateStatusIfExpected(
                 ORDER_ID, OrderStatus.PENDING, OrderStatus.PROCESSING, NOW)).thenReturn(2);
-        assertThatThrownBy(() -> service().advanceStatus(ORDER_ID, "PROCESSING"))
+        assertThatThrownBy(() -> service().updateStatus(ORDER_ID, "PROCESSING"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("multiple rows");
 
         when(repository.updateStatusIfExpected(
                 ORDER_ID, OrderStatus.PENDING, OrderStatus.PROCESSING, NOW)).thenReturn(1);
         when(repository.findDetailById(ORDER_ID)).thenReturn(java.util.Optional.empty());
-        assertThatThrownBy(() -> service().advanceStatus(ORDER_ID, "PROCESSING"))
+        assertThatThrownBy(() -> service().updateStatus(ORDER_ID, "PROCESSING"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("disappeared");
     }
@@ -220,32 +226,32 @@ class OrderServiceTest {
     }
 
     private static Stream<Arguments> invalidCreateCommands() {
-        List<CreateOrderCommand.Item> tooMany = new ArrayList<>();
+        List<CreateOrderData.Item> tooMany = new ArrayList<>();
         for (int index = 0; index < 101; index++) {
-            tooMany.add(new CreateOrderCommand.Item("SKU-" + index, 1));
+            tooMany.add(new CreateOrderData.Item("SKU-" + index, 1));
         }
         return Stream.of(
-                Arguments.of(new CreateOrderCommand(null), "items"),
-                Arguments.of(new CreateOrderCommand(List.of()), "items"),
-                Arguments.of(new CreateOrderCommand(tooMany), "items"),
-                Arguments.of(new CreateOrderCommand(Collections.singletonList(null)), "items[0]"),
-                Arguments.of(new CreateOrderCommand(List.of(
-                        new CreateOrderCommand.Item(null, 1))), "items[0].productId"),
-                Arguments.of(new CreateOrderCommand(List.of(
-                        new CreateOrderCommand.Item("   ", 1))), "items[0].productId"),
-                Arguments.of(new CreateOrderCommand(List.of(
-                        new CreateOrderCommand.Item("", 1))), "items[0].productId"),
-                Arguments.of(new CreateOrderCommand(List.of(
-                        new CreateOrderCommand.Item("😀".repeat(101), 1))), "items[0].productId"),
-                Arguments.of(new CreateOrderCommand(List.of(
-                        new CreateOrderCommand.Item("SKU\u0000BAD", 1))), "items[0].productId"),
-                Arguments.of(new CreateOrderCommand(List.of(
-                        new CreateOrderCommand.Item("SKU", 1),
-                        new CreateOrderCommand.Item("SKU", 2))), "items[1].productId"),
-                Arguments.of(new CreateOrderCommand(List.of(
-                        new CreateOrderCommand.Item("SKU", 0))), "items[0].quantity"),
-                Arguments.of(new CreateOrderCommand(List.of(
-                        new CreateOrderCommand.Item("SKU", 1000))), "items[0].quantity"));
+                Arguments.of(new CreateOrderData(null), "items"),
+                Arguments.of(new CreateOrderData(List.of()), "items"),
+                Arguments.of(new CreateOrderData(tooMany), "items"),
+                Arguments.of(new CreateOrderData(Collections.singletonList(null)), "items[0]"),
+                Arguments.of(new CreateOrderData(List.of(
+                        new CreateOrderData.Item(null, 1))), "items[0].productId"),
+                Arguments.of(new CreateOrderData(List.of(
+                        new CreateOrderData.Item("   ", 1))), "items[0].productId"),
+                Arguments.of(new CreateOrderData(List.of(
+                        new CreateOrderData.Item("", 1))), "items[0].productId"),
+                Arguments.of(new CreateOrderData(List.of(
+                        new CreateOrderData.Item("😀".repeat(101), 1))), "items[0].productId"),
+                Arguments.of(new CreateOrderData(List.of(
+                        new CreateOrderData.Item("SKU\u0000BAD", 1))), "items[0].productId"),
+                Arguments.of(new CreateOrderData(List.of(
+                        new CreateOrderData.Item("SKU", 1),
+                        new CreateOrderData.Item("SKU", 2))), "items[1].productId"),
+                Arguments.of(new CreateOrderData(List.of(
+                        new CreateOrderData.Item("SKU", 0))), "items[0].quantity"),
+                Arguments.of(new CreateOrderData(List.of(
+                        new CreateOrderData.Item("SKU", 1000))), "items[0].quantity"));
     }
 
     private static Stream<Arguments> invalidListInputs() {

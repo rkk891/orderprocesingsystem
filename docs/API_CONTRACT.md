@@ -17,6 +17,21 @@
 
 See [PRD](PRD.md) for behavior, [LLD](LLD.md) for execution, [Data Model](DATA_MODEL.md) for persistence, and [Test Strategy](TEST_STRATEGY.md) for contract coverage.
 
+For local exploration, Swagger UI is available at `/swagger-ui.html` and reads
+the checked-in OpenAPI 3.1 contract from `/openapi.yaml`. These documentation
+routes are not part of `/api/v1`, add no order behavior, and are disabled by the
+`prod` profile. This document remains authoritative when the derived artifact
+and prose disagree.
+
+For an evaluator walkthrough, the default `./dev` command loads five fixed local orders,
+one in each lifecycle state, and disables scheduling so Swagger executions stay
+predictable. The checked-in OpenAPI document also includes request, success, and
+Problem Details examples; examples illustrate the contract, while **Execute**
+shows the real persisted response. Demo startup does not change any `/api/v1`
+behavior. `./dev start`, tests, and the existing hardened profile do not load or
+reset fixtures; a previously used local Supabase database may still contain its
+persisted demo rows.
+
 ## 2. Endpoint Summary
 
 | Method | Path | Purpose | Success |
@@ -56,6 +71,9 @@ The background processor has no public endpoint.
 
 `POST /api/v1/orders`
 
+Use this endpoint when a client is ready to save a new order. It creates an
+independent order; it does not update or replace an existing order.
+
 Request body contains only `items`, an array of 1–100 item inputs. IDs, status, timestamps, item positions, and other fields are server-owned and rejected when supplied.
 
 ```json
@@ -75,6 +93,9 @@ Failures: malformed/unknown fields, invalid bounds, empty items, or duplicate pr
 
 `GET /api/v1/orders/{orderId}`
 
+Use this endpoint after create or list when a client needs the complete current
+order, including every item, rather than a lightweight summary.
+
 - 200: full order detail.
 - 400: path value is not a UUID.
 - 404: valid UUID is absent.
@@ -82,6 +103,9 @@ Failures: malformed/unknown fields, invalid bounds, empty items, or duplicate pr
 ## 6. List Orders
 
 `GET /api/v1/orders?status=PENDING&page=0&size=20`
+
+Use this endpoint to build an order history, work queue, or status-filtered view
+without downloading every order's item details.
 
 | Query | Required | Default | Validation |
 | --- | ---: | --- | --- |
@@ -112,6 +136,9 @@ Invalid status/page/size returns 400. A valid page with no matches returns 200 w
 
 `PATCH /api/v1/orders/{orderId}/status`
 
+Use this endpoint when fulfilment has completed the next step for an order. It
+cannot skip steps, move backward, or cancel an order.
+
 ```json
 {"status": "SHIPPED"}
 ```
@@ -131,6 +158,9 @@ returns 404.
 ## 8. Cancel Order
 
 `POST /api/v1/orders/{orderId}/cancel`
+
+Use this endpoint to stop an order before processing starts. Cancellation keeps
+the order for history and changes its status; it never deletes the order.
 
 No request body is accepted. The body must be absent or zero bytes; JSON `null`,
 `{}`, whitespace, and any other non-zero-length payload are invalid. A

@@ -1,12 +1,13 @@
 # Project Handoff
 
-**Updated:** 2026-07-14
+**Updated:** 2026-07-15
 **Phase:** Assessment implementation complete
-**Implementation status:** Phases 1–5 verified on 2026-07-13
+**Implementation status:** Phases 1–5 verified on 2026-07-13; package-navigation hardening verified on 2026-07-15
 
 ## Verified Repository State
 
-- Git is initialized on `main`; `origin` is `git@github.com:rkk891/orderprocesingsystem.git`.
+- Git is initialized with `main` as the default branch; `origin` is
+  `https://github.com/rkk891/orderprocesingsystem.git`.
 - `backend/ordersystem/` is a Java 21/Spring Boot 4.1.0 order-processing service.
 - `pom.xml` contains the minimum MVC, validation, JPA, Flyway, PostgreSQL,
   Actuator, Testcontainers, Failsafe, JaCoCo, and MVC test-slice dependencies.
@@ -18,6 +19,17 @@
   startup and Flyway migration also completed successfully.
 - The V1 Flyway migration, order domain/persistence/application/API layers,
   scheduler, trace/error handling, and scheduler metrics are implemented.
+- Local Swagger UI renders a checked-in, contract-tested OpenAPI 3.1 artifact;
+  runtime inference and all documentation surfaces are disabled in `prod`.
+- The default `./dev` assessment path provides five profile-isolated, repeatable recruiter fixtures—one
+  per lifecycle state—and keeps scheduling disabled for a predictable Swagger
+  walkthrough. Other profiles do not load or reset the fixture callback.
+- HTTP carriers are organized under `order.api.request` and
+  `order.api.response`; application commands, results, and errors are under
+  `order.application.command`, `result`, and `exception`.
+- Create requests defensively snapshot their item list while preserving invalid
+  null values for Jakarta Validation. Aggregate creation independently enforces
+  the documented 1–100 item cardinality before attaching children.
 - Root `./dev` provides secret-safe one-command local Docker readiness,
   Supabase startup, datasource wiring, application boot, readiness reporting,
   and owned cleanup.
@@ -41,6 +53,10 @@
 - API code communicates through immutable application commands/results and never
   imports persistence; the transactional pending processor belongs to
   `order.application`, while `order.job` contains only the scheduler adapter.
+- HTTP request/response carriers use the semantic `order.api.request` and
+  `order.api.response` packages. Application carriers/errors use
+  `order.application.command`, `result`, and `exception`; use-case services and
+  their mapper remain at the application package root.
 - The singular Java feature package is `order`; plural `orders` is reserved for
   HTTP resources and database table names. `ClockConfiguration` is the canonical
   clock configuration class.
@@ -64,9 +80,10 @@ TRD explicitly keeps outside this assessment.
 ## Verification Performed
 
 - Confirmed `java`, `javac`, and the Maven Wrapper use Eclipse Temurin 21.0.11.
-- Targeted fast verification passed 71 tests across architecture, domain,
-  entity, service, processor, scheduler, and MockMvc contracts:
-  `./mvnw -q -Dtest=ArchitectureRulesTest,OrderStatusTest,OrderEntityTest,OrderServiceTest,PendingOrderProcessorTest,PendingOrderSchedulerTest,OrderControllerMockMvcTest test`.
+- Targeted package-navigation verification passed 71 tests across architecture,
+  request immutability, aggregate cardinality, application service, and MockMvc
+  contracts:
+  `./mvnw -q -Dtest=ArchitectureRulesTest,NewOrderRequestTest,OrderEntityTest,OrderServiceTest,OrderControllerMockMvcTest test`.
 - Targeted Failsafe verification passed 20 PostgreSQL tests across application
   startup/Flyway, repository constraints/queries, and concurrency races:
   `./mvnw -q -Dit.test=OrderProcessingApplicationIT,OrderRepositoryIT,OrderConcurrencyIT -Djacoco.skip=true failsafe:integration-test failsafe:verify`.
@@ -78,10 +95,13 @@ TRD explicitly keeps outside this assessment.
   handler smoke passed one test and reported `affectedCount=1`.
 - The `./dev` launcher was verified from outside the repository, including cold
   and warm Supabase ownership paths, HTTP readiness, signal cleanup, and Newman.
-- Final `./mvnw clean verify` passed 71 fast/unit/MockMvc tests and 26
-  Testcontainers PostgreSQL integration tests (97 total), including Flyway, JPA
+- Final `./mvnw clean verify` passed 81 fast/unit/MockMvc tests and 27
+  Testcontainers PostgreSQL integration tests (108 total), including Flyway, JPA
   validation, aggregate rollback, database readiness failure, processor snapshot
   visibility, three core races, and all JaCoCo gates.
+- Package-navigation review confirmed that the old flat DTO/application carrier
+  packages have no remaining Java sources or imports, the semantic package rules
+  are non-vacuous, and JaCoCo includes application subpackages.
 - Confirmed Java/Spring versions against current official Spring documentation.
 - Confirmed Supabase direct/session connection guidance and PostgreSQL conditional-update semantics.
 - Reviewed classic-pattern alternatives and reconciled the LLD/architecture

@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -52,6 +53,35 @@ class OrderEntityTest {
     }
 
     @Test
+    void rejectsItemCardinalityOutsideTheAggregateBoundary() {
+        Instant timestamp = Instant.parse("2026-07-13T08:15:30Z");
+        List<OrderItemEntity> tooMany = items(101);
+
+        assertThatThrownBy(() -> OrderEntity.createPending(
+                UUID.randomUUID(), timestamp, List.of()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("items must contain between 1 and 100 items");
+        assertThatThrownBy(() -> OrderEntity.createPending(
+                UUID.randomUUID(), timestamp, tooMany))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("items must contain between 1 and 100 items");
+        assertThat(tooMany).allMatch(item -> item.getOrder() == null);
+    }
+
+    @Test
+    void acceptsTheMaximumItemCardinalityAndAttachesEveryItem() {
+        List<OrderItemEntity> maximumItems = items(100);
+
+        OrderEntity order = OrderEntity.createPending(
+                UUID.randomUUID(),
+                Instant.parse("2026-07-13T08:15:30Z"),
+                maximumItems);
+
+        assertThat(order.getItems()).hasSize(100);
+        assertThat(maximumItems).allMatch(item -> item.getOrder() == order);
+    }
+
+    @Test
     void rejectsReattachingAnItemToAnotherAggregate() {
         OrderItemEntity item = OrderItemEntity.create(0, "SKU-001", 1);
         OrderEntity.createPending(
@@ -85,5 +115,11 @@ class OrderEntityTest {
                 .isInstanceOf(IllegalStateException.class);
         assertThat(fresh.getOrder()).isNull();
         assertThat(alreadyAttached.getOrder()).isSameAs(original);
+    }
+
+    private static List<OrderItemEntity> items(int count) {
+        return IntStream.range(0, count)
+                .mapToObj(position -> OrderItemEntity.create(position, "SKU-" + position, 1))
+                .toList();
     }
 }
