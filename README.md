@@ -43,15 +43,11 @@ Detailed design and concurrency rationale are documented in
 4. [docs/DATA_MODEL.md](docs/DATA_MODEL.md) — PostgreSQL schema and constraints.
 5. [docs/INDEX.md](docs/INDEX.md) — complete documentation map.
 
-Open [order-system-atlas.html](order-system-atlas.html) for a two-minute,
-one-scene-at-a-time story of the full project. Play it in plain language, then
-use **Show code** only when exact classes and methods are useful. It is a derived
-explainer; the indexed documents above and current source remain authoritative.
-
-Open [order-api-theater.html](order-api-theater.html) for a separate,
-endpoint-by-endpoint walkthrough of all five HTTP routes. Choose one API, press
-**Play API**, and reveal exact controller, service, repository, database, and
-response behavior only when needed.
+Open [order-system-showcase.html](order-system-showcase.html) for the primary
+project website. It tells one continuous interactive story from assignment scope
+and API behavior through the code flow, scheduler, concurrency safety, demo
+fixtures, and verification. It never sends a live request; the indexed documents
+above and current source remain authoritative.
 
 ## Repository Layout
 
