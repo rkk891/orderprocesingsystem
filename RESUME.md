@@ -77,7 +77,7 @@ TRD explicitly keeps outside this assessment.
 - Targeted package-navigation verification passed 71 tests across architecture,
   request immutability, aggregate cardinality, application service, and MockMvc
   contracts:
-  `./mvnw -q -Dtest=ArchitectureRulesTest,CreateOrderRequestTest,OrderEntityTest,OrderServiceTest,OrderControllerMockMvcTest test`.
+  `./mvnw -q -Dtest=ArchitectureRulesTest,NewOrderRequestTest,OrderEntityTest,OrderServiceTest,OrderControllerMockMvcTest test`.
 - Targeted Failsafe verification passed 20 PostgreSQL tests across application
   startup/Flyway, repository constraints/queries, and concurrency races:
   `./mvnw -q -Dit.test=OrderProcessingApplicationIT,OrderRepositoryIT,OrderConcurrencyIT -Djacoco.skip=true failsafe:integration-test failsafe:verify`.

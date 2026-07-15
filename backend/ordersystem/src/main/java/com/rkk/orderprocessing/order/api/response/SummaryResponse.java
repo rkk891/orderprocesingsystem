@@ -12,7 +12,7 @@ import java.util.UUID;
  * @param createdAt the instant the order was originally placed.
  * @param updatedAt the instant the order was last modified.
  */
-public record OrderSummaryResponse(
+public record SummaryResponse(
         UUID id,
         String status,
         long itemCount,

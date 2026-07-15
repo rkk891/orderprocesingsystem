@@ -1,11 +1,14 @@
 package com.rkk.orderprocessing.order.api;
 
-import com.rkk.orderprocessing.order.api.request.CreateOrderRequest;
-import com.rkk.orderprocessing.order.api.request.UpdateOrderStatusRequest;
-import com.rkk.orderprocessing.order.api.response.OrderPageResponse;
+import com.rkk.orderprocessing.order.api.request.NewOrderRequest;
+import com.rkk.orderprocessing.order.api.request.UpdateStatusRequest;
+import com.rkk.orderprocessing.order.api.response.PageResponse;
 import com.rkk.orderprocessing.order.api.response.OrderResponse;
-import com.rkk.orderprocessing.order.application.exception.InvalidOrderException;
 import com.rkk.orderprocessing.order.application.OrderService;
+import com.rkk.orderprocessing.order.application.command.CreateOrderData;
+import com.rkk.orderprocessing.order.application.exception.InvalidOrderException;
+import com.rkk.orderprocessing.order.application.result.OrderDetails;
+import com.rkk.orderprocessing.order.application.result.OrderPage;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.ArrayList;
@@ -28,6 +31,18 @@ import org.springframework.web.bind.annotation.RestController;
  * Versioned HTTP adapter for synchronous order use cases.
  * This controller handles external API requests, maps them to application commands, invokes the
  * application service, and maps results back to HTTP responses.
+ *
+ * <p>Translates generic HTTP exceptions into structured JSON responses through a centralized
+ * exception handler (not shown here).</p>
+ *
+ * <p><b>Annotation Mechanics:</b>
+ * <ul>
+ *   <li>{@code @RestController}: Tells Spring to automatically serialize the returned Java objects
+ *   (like {@code OrderResponse}) into JSON using Jackson before sending them back to the client.</li>
+ *   <li>{@code @Valid}: When placed on a method parameter, it instructs Spring to run Jakarta Validation
+ *   rules (like {@code @NotNull}, {@code @Min}) on the incoming payload <i>before</i> the method executes.
+ *   If validation fails, Spring throws an exception immediately, preventing bad data from reaching the service.</li>
+ * </ul>
  */
 @RestController
 @RequestMapping(path = "/api/v1/orders", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -40,7 +55,7 @@ public class OrderController {
     private static final int DEFAULT_SIZE = 20;
 
     private final OrderService service;
-    private final OrderApiMapper mapper;
+    private final ApiMapper mapper;
 
     /**
      * Creates the HTTP controller with the service and API mapper it delegates to.
@@ -48,7 +63,7 @@ public class OrderController {
      * @param service runs order operations and applies business rules
      * @param mapper converts between HTTP objects and application objects
      */
-    public OrderController(OrderService service, OrderApiMapper mapper) {
+    public OrderController(OrderService service, ApiMapper mapper) {
         this.service = service;
         this.mapper = mapper;
     }
@@ -60,12 +75,17 @@ public class OrderController {
      * @return a ResponseEntity containing the created order and a Location header.
      */
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<OrderResponse> create(@Valid @RequestBody CreateOrderRequest request) {
-        // Map the HTTP request into an application command. The service applies the business rules,
-        // and the mapper converts its result back into the public API response shape.
-        OrderResponse response = mapper.toResponse(service.create(mapper.toCommand(request)));
+    public ResponseEntity<OrderResponse> create(@Valid @RequestBody NewOrderRequest request) {
+        // 1. Map the validated HTTP request payload into the internal Domain Command
+        CreateOrderData command = mapper.toData(request);
 
-        // Return 201 Created with the relative location URI for the newly created resource.
+        // 2. Invoke the Application Service to execute the core business logic
+        OrderDetails details = service.create(command);
+
+        // 3. Map the Domain Result back into the public API Response shape
+        OrderResponse response = mapper.toResponse(details);
+
+        // 4. Return HTTP 201 Created with the Location header pointing to the new resource
         return ResponseEntity.created(URI.create("/api/v1/orders/" + response.id()))
                 .body(response);
     }
@@ -78,8 +98,12 @@ public class OrderController {
      */
     @GetMapping("/{orderId}")
     public OrderResponse get(@PathVariable UUID orderId) {
-        // Mapping here keeps database entity classes out of the public API response.
-        return mapper.toResponse(service.get(orderId));
+        // 1. Invoke the Application Service to load the OrderDetails
+        OrderDetails details = service.get(orderId);
+
+        // 2. Map the Domain Result back into the public API Response shape
+        // We do this immediately to prevent database entities from leaking into the public API
+        return mapper.toResponse(details);
     }
 
     /**
@@ -92,12 +116,16 @@ public class OrderController {
      * @return a paginated response containing a list of order summaries.
      */
     @GetMapping
-    public OrderPageResponse list(@RequestParam MultiValueMap<String, String> parameters) {
-        // Read the multi-value map directly so repeated parameters can be rejected reliably.
+    public PageResponse list(@RequestParam MultiValueMap<String, String> parameters) {
+        // 1. Read the raw HTTP multi-value map directly so repeated query parameters
+        // can be reliably rejected instead of Spring silently swallowing them.
         PageQuery query = parsePageQuery(parameters);
 
-        // The service returns application data; the mapper gives it the public response shape.
-        return mapper.toResponse(service.list(query.status(), query.page(), query.size()));
+        // 2. Invoke the Application Service to fetch the paginated OrderPage domain result
+        OrderPage page = service.list(query.status(), query.page(), query.size());
+
+        // 3. Map the Domain Result back into the public API Response shape
+        return mapper.toResponse(page);
     }
 
     /**
@@ -109,11 +137,12 @@ public class OrderController {
      * @return the updated order details after the state transition.
      */
     @PatchMapping(path = "/{orderId}/status", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public OrderResponse advanceStatus(
-            @PathVariable UUID orderId,
-            @Valid @RequestBody UpdateOrderStatusRequest request) {
-        // The service checks the allowed previous status and performs the guarded database update.
-        return mapper.toResponse(service.advanceStatus(orderId, request.status()));
+    public OrderResponse updateStatus(@PathVariable UUID orderId, @Valid @RequestBody UpdateStatusRequest request) {
+        // 1. Invoke the Application Service to transition the order state
+        OrderDetails details = service.updateStatus(orderId, request.status());
+
+        // 2. Map the Domain Result back into the public API Response shape
+        return mapper.toResponse(details);
     }
 
     /**
@@ -129,13 +158,19 @@ public class OrderController {
     public OrderResponse cancel(
             @PathVariable UUID orderId,
             @RequestBody(required = false) byte[] body) {
+
+        // 1. Validate the HTTP protocol boundary
         // Any bytes, including JSON null, an object, or whitespace, violate the cancel contract.
         if (body != null && body.length > 0) {
             throw InvalidOrderException.at("$", "request body must be absent");
         }
 
-        // The service permits cancellation only while the saved status is PENDING.
-        return mapper.toResponse(service.cancel(orderId));
+        // 2. Invoke the Application Service
+        // The service enforces that cancellation can only happen while the saved status is PENDING.
+        OrderDetails details = service.cancel(orderId);
+
+        // 3. Map the Domain Result back into the public API Response shape
+        return mapper.toResponse(details);
     }
 
     /**

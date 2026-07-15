@@ -1176,10 +1176,10 @@ html&gt;body{padding:0}&lt;/style&gt;
             icon: &quot;arrow-left-right&quot;,
             lane: 1,
             state: &quot;MAPPED&quot;,
-            wire: &quot;CreateOrderRequest → CreateOrderCommand&quot;,
+            wire: &quot;NewOrderRequest → CreateOrderData&quot;,
             code: [
               &quot;&lt;code&gt;OrderController.create()&lt;/code&gt; receives the validated request.&quot;,
-              &quot;&lt;code&gt;OrderApiMapper.toCommand()&lt;/code&gt; creates an immutable &lt;code&gt;CreateOrderCommand&lt;/code&gt;.&quot;,
+              &quot;&lt;code&gt;ApiMapper.toData()&lt;/code&gt; creates an immutable &lt;code&gt;CreateOrderData&lt;/code&gt;.&quot;,
               &quot;The API package never passes a JPA entity into or out of the controller.&quot;
             ]
           },
@@ -1209,7 +1209,7 @@ html&gt;body{padding:0}&lt;/style&gt;
               &quot;&lt;code&gt;OrderRepository.save()&lt;/code&gt; persists the parent and cascades persist to its items.&quot;,
               &quot;Flyway-created constraints defend status, timestamps, product length/basic blankness, quantity, position, and per-order uniqueness.&quot;,
               &quot;The application alone guarantees at least one item and Java&#x27;s broader Unicode-blank rule.&quot;,
-              &quot;&lt;code&gt;OrderResultMapper.toDetails()&lt;/code&gt; detaches the result while the transaction is still open.&quot;
+              &quot;&lt;code&gt;DataMapper.toDetails()&lt;/code&gt; detaches the result while the transaction is still open.&quot;
             ]
           },
           {
@@ -1223,7 +1223,7 @@ html&gt;body{padding:0}&lt;/style&gt;
             outcomes: [[&quot;201&quot;, &quot;Full order · PENDING&quot;]],
             code: [
               &quot;The service transaction commits before &lt;code&gt;OrderController.create()&lt;/code&gt; resumes.&quot;,
-              &quot;&lt;code&gt;OrderApiMapper.toResponse()&lt;/code&gt; builds the full detail response; success bodies do not contain &lt;code&gt;traceId&lt;/code&gt;.&quot;,
+              &quot;&lt;code&gt;ApiMapper.toResponse()&lt;/code&gt; builds the full detail response; success bodies do not contain &lt;code&gt;traceId&lt;/code&gt;.&quot;,
               &quot;Repeating the same create request creates a different order because create idempotency is outside V1.&quot;
             ]
           },
@@ -1309,7 +1309,7 @@ html&gt;body{padding:0}&lt;/style&gt;
             wire: &quot;SELECT DISTINCT + LEFT JOIN FETCH items&quot;,
             code: [
               &quot;&lt;code&gt;OrderRepository.findDetailById()&lt;/code&gt; fetches the complete aggregate.&quot;,
-              &quot;&lt;code&gt;OrderResultMapper.toDetails()&lt;/code&gt; sorts items by position and creates an immutable application result.&quot;,
+              &quot;&lt;code&gt;DataMapper.toDetails()&lt;/code&gt; sorts items by position and creates an immutable application result.&quot;,
               &quot;The API response never depends on an open persistence session.&quot;
             ]
           },
@@ -1322,7 +1322,7 @@ html&gt;body{padding:0}&lt;/style&gt;
             state: &quot;200 OK&quot;,
             outcomes: [[&quot;200&quot;, &quot;Full order detail&quot;]],
             code: [
-              &quot;&lt;code&gt;OrderApiMapper.toResponse()&lt;/code&gt; maps the detached result after the service proxy returns.&quot;,
+              &quot;&lt;code&gt;ApiMapper.toResponse()&lt;/code&gt; maps the detached result after the service proxy returns.&quot;,
               &quot;The body contains &lt;code&gt;id&lt;/code&gt;, status, items, &lt;code&gt;createdAt&lt;/code&gt;, and &lt;code&gt;updatedAt&lt;/code&gt;.&quot;
             ]
           },
@@ -1424,7 +1424,7 @@ html&gt;body{padding:0}&lt;/style&gt;
             state: &quot;200 OK&quot;,
             outcomes: [[&quot;200&quot;, &quot;Page or empty page&quot;]],
             code: [
-              &quot;&lt;code&gt;OrderResultMapper.toPage()&lt;/code&gt; detaches summaries; &lt;code&gt;OrderApiMapper.toResponse()&lt;/code&gt; builds the public page.&quot;,
+              &quot;&lt;code&gt;DataMapper.toPage()&lt;/code&gt; detaches summaries; &lt;code&gt;ApiMapper.toResponse()&lt;/code&gt; builds the public page.&quot;,
               &quot;Each summary has id, status, itemCount, createdAt, and updatedAt; it has no item array.&quot;,
               &quot;A valid beyond-range page returns &lt;code&gt;200&lt;/code&gt; with empty &lt;code&gt;content&lt;/code&gt;, not 404.&quot;
             ]
@@ -1471,7 +1471,7 @@ html&gt;body{padding:0}&lt;/style&gt;
             state: &quot;CHECKING&quot;,
             wire: &quot;UUID + one status field&quot;,
             code: [
-              &quot;&lt;code&gt;UpdateOrderStatusRequest&lt;/code&gt; requires one nonblank &lt;code&gt;status&lt;/code&gt;.&quot;,
+              &quot;&lt;code&gt;UpdateStatusRequest&lt;/code&gt; requires one nonblank &lt;code&gt;status&lt;/code&gt;.&quot;,
               &quot;Unknown or duplicate fields and malformed UUIDs become &lt;code&gt;400&lt;/code&gt; at the HTTP boundary.&quot;
             ]
           },
@@ -1482,9 +1482,9 @@ html&gt;body{padding:0}&lt;/style&gt;
             icon: &quot;route&quot;,
             lane: 1,
             state: &quot;ROUTED&quot;,
-            wire: &quot;OrderController.advanceStatus()&quot;,
+            wire: &quot;OrderController.updateStatus()&quot;,
             code: [
-              &quot;&lt;code&gt;OrderController.advanceStatus()&lt;/code&gt; calls &lt;code&gt;OrderService.advanceStatus()&lt;/code&gt;.&quot;,
+              &quot;&lt;code&gt;OrderController.updateStatus()&lt;/code&gt; calls &lt;code&gt;OrderService.updateStatus()&lt;/code&gt;.&quot;,
               &quot;The controller does not read the current order or decide whether the move is legal.&quot;
             ]
           },
@@ -1527,7 +1527,7 @@ html&gt;body{padding:0}&lt;/style&gt;
             outcomes: [[&quot;200&quot;, &quot;Full updated order&quot;]],
             code: [
               &quot;The shared transition helper refetches and detaches detail inside the transaction.&quot;,
-              &quot;After commit, &lt;code&gt;OrderApiMapper.toResponse()&lt;/code&gt; builds the &lt;code&gt;200&lt;/code&gt; body.&quot;,
+              &quot;After commit, &lt;code&gt;ApiMapper.toResponse()&lt;/code&gt; builds the &lt;code&gt;200&lt;/code&gt; body.&quot;,
               &quot;Repeating the now-stale move returns &lt;code&gt;409&lt;/code&gt;, not another success.&quot;
             ]
           },

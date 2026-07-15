@@ -31,13 +31,13 @@ import org.springframework.transaction.support.TransactionTemplate;
 @SpringBootTest
 @ActiveProfiles("test")
 @Import(PostgresTestConfiguration.class)
-class PendingOrderProcessorSnapshotIT {
+class OrderProcessorSnapshotIT {
 
     private static final Instant CREATED_AT = Instant.parse("2026-07-13T08:00:00Z");
     private static final OffsetDateTime DATABASE_CREATED_AT = CREATED_AT.atOffset(ZoneOffset.UTC);
 
     @Autowired
-    private PendingOrderProcessor pendingOrderProcessor;
+    private OrderProcessor pendingOrderProcessor;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;

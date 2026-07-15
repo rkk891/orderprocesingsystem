@@ -1418,7 +1418,7 @@ html&gt;body{padding:0}&lt;/style&gt;
           &lt;/div&gt;`,
         code: [
           &quot;&lt;code&gt;OrderController&lt;/code&gt; owns the five HTTP routes under &lt;code&gt;/api/v1/orders&lt;/code&gt;.&quot;,
-          &quot;&lt;code&gt;PendingOrderScheduler&lt;/code&gt; is the sixth, background entry point; it has no HTTP route.&quot;,
+          &quot;&lt;code&gt;OrderScheduler&lt;/code&gt; is the sixth, background entry point; it has no HTTP route.&quot;,
           &quot;Runtime: Java 21, Spring Boot 4.1.0, Spring MVC, JPA, Flyway, and PostgreSQL over JDBC.&quot;,
           &quot;Shape: one layered package-by-feature modular monolith, not microservices.&quot;
         ]
@@ -1497,7 +1497,7 @@ html&gt;body{padding:0}&lt;/style&gt;
             &lt;div class=&quot;story-reject&quot;&gt;${icon(&quot;x-circle&quot;)} Invalid orders return a clear &lt;code&gt;400&lt;/code&gt;; nothing is saved.&lt;/div&gt;
           &lt;/div&gt;`,
         code: [
-          &quot;&lt;code&gt;OrderApiMapper.toCommand()&lt;/code&gt; converts &lt;code&gt;CreateOrderRequest&lt;/code&gt; into &lt;code&gt;CreateOrderCommand&lt;/code&gt;.&quot;,
+          &quot;&lt;code&gt;ApiMapper.toData()&lt;/code&gt; converts &lt;code&gt;NewOrderRequest&lt;/code&gt; into &lt;code&gt;CreateOrderData&lt;/code&gt;.&quot;,
           &quot;&lt;code&gt;OrderService.validateCreate()&lt;/code&gt; enforces item count, exact product uniqueness, and valid quantities.&quot;,
           &quot;API DTOs never import JPA entities; HTTP and persistence models stay separate.&quot;,
           &quot;Application errors carry field violations; &lt;code&gt;ApiExceptionHandler&lt;/code&gt; turns them into the public error contract.&quot;
@@ -1563,11 +1563,11 @@ html&gt;body{padding:0}&lt;/style&gt;
             &lt;/div&gt;
           &lt;/div&gt;`,
         code: [
-          &quot;Find one: &lt;code&gt;OrderController.get() → OrderService.get() → OrderRepository.findDetailById() → OrderResultMapper.toDetails() → OrderApiMapper.toResponse()&lt;/code&gt;.&quot;,
-          &quot;Browse: &lt;code&gt;OrderController.list() → parsePageQuery() → OrderService.list() → OrderRepository.findSummaryPage()/findSummaryPageByStatus() → OrderResultMapper.toPage() → OrderApiMapper.toResponse()&lt;/code&gt;.&quot;,
+          &quot;Find one: &lt;code&gt;OrderController.get() → OrderService.get() → OrderRepository.findDetailById() → DataMapper.toDetails() → ApiMapper.toResponse()&lt;/code&gt;.&quot;,
+          &quot;Browse: &lt;code&gt;OrderController.list() → parsePageQuery() → OrderService.list() → OrderRepository.findSummaryPage()/findSummaryPageByStatus() → DataMapper.toPage() → ApiMapper.toResponse()&lt;/code&gt;.&quot;,
           &quot;A valid unknown detail ID returns &lt;code&gt;404&lt;/code&gt;; list uses summary projections, optional exact status, zero-based pages, and a maximum size of 100.&quot;,
           &quot;Sort order is &lt;code&gt;createdAt DESC, id DESC&lt;/code&gt;; pages may shift when concurrent inserts occur.&quot;,
-          &quot;&lt;code&gt;OrderResultMapper&lt;/code&gt; returns detached results before &lt;code&gt;OrderApiMapper&lt;/code&gt; builds responses.&quot;
+          &quot;&lt;code&gt;DataMapper&lt;/code&gt; returns detached results before &lt;code&gt;ApiMapper&lt;/code&gt; builds responses.&quot;
         ]
       },
       {
@@ -1594,7 +1594,7 @@ html&gt;body{padding:0}&lt;/style&gt;
           &lt;/div&gt;`,
         code: [
           &quot;Cron is &lt;code&gt;0 */5 * * * *&lt;/code&gt; in &lt;code&gt;UTC&lt;/code&gt;; it is not an order-age timer.&quot;,
-          &quot;Flow: &lt;code&gt;PendingOrderScheduler → PendingOrderProcessor → OrderRepository.processPending()&lt;/code&gt;.&quot;,
+          &quot;Flow: &lt;code&gt;OrderScheduler → OrderProcessor → OrderRepository.processPending()&lt;/code&gt;.&quot;,
           &quot;The repository issues one conditional bulk update; an immediate repeat changes zero rows when no new pending rows became visible.&quot;,
           &quot;The processor transaction commits before the scheduler records success metrics/logs; commit failure records a failure instead.&quot;,
           &quot;If every scheduler-enabled replica is down, no tick runs; the next successful tick catches up rows still pending.&quot;,

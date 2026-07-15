@@ -292,7 +292,7 @@ status is superseded by the implementation evidence recorded below.
   `result`, and `exception`; kept use-case services and mappers at their layer
   roots to avoid speculative abstractions.
 - Issue, uncertainty, or incorrect suggestion: the flat packages mixed unrelated
-  navigation concerns, `CreateOrderRequest` retained its caller-owned mutable
+  navigation concerns, `NewOrderRequest` retained its caller-owned mutable
   list, and direct aggregate construction did not repeat the documented 1–100
   item cardinality. Review also found that an exact JaCoCo application include
   would omit the new subpackages and that package tests could otherwise pass
@@ -303,7 +303,7 @@ status is superseded by the implementation evidence recorded below.
   made semantic-package checks require Java sources, and included application
   subpackages in the 90% coverage rule.
 - Automated verification: the focused 71-test command
-  `./mvnw -q -Dtest=ArchitectureRulesTest,CreateOrderRequestTest,OrderEntityTest,OrderServiceTest,OrderControllerMockMvcTest test`
+  `./mvnw -q -Dtest=ArchitectureRulesTest,NewOrderRequestTest,OrderEntityTest,OrderServiceTest,OrderControllerMockMvcTest test`
   passed. `./mvnw clean verify` then passed 77 fast/unit/MockMvc tests and 26
   PostgreSQL integration tests (103 total) with all JaCoCo gates met. The stale
   package-path scan returned no matches and `git diff --check` passed.

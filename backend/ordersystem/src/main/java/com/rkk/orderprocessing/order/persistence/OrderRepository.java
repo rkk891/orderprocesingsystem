@@ -97,6 +97,15 @@ public interface OrderRepository extends JpaRepository<OrderEntity, UUID> {
      * @param targetStatus the new status to apply.
      * @param clockInstant the exact point-in-time to write as the new updated_at value.
      * @return the number of rows affected (should be exactly 1 for a successful transition).
+     *
+     * <p><b>Annotation Mechanics:</b>
+     * <ul>
+     *   <li>{@code @Modifying(flushAutomatically = true, clearAutomatically = true)}: Instructs
+     *   Hibernate to synchronize its first-level cache with the database before the query runs and
+     *   clear it afterward. This ensures subsequent reads see the updated state, preventing stale data.</li>
+     *   <li>{@code @Query(nativeQuery = true)}: Bypasses JPA objects entirely to execute raw PostgreSQL,
+     *   allowing us to use atomic locking and avoid the overhead of loading entities into memory.</li>
+     * </ul>
      */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(value = """

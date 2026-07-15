@@ -37,25 +37,25 @@ backend/ordersystem/src/main/java/com/rkk/orderprocessing/
 └── order/
     ├── api/
     │   ├── OrderController.java
-    │   ├── OrderApiMapper.java
+    │   ├── ApiMapper.java
     │   ├── request/
-    │   │   ├── CreateOrderRequest.java
-    │   │   ├── CreateOrderItemRequest.java
-    │   │   └── UpdateOrderStatusRequest.java
+    │   │   ├── NewOrderRequest.java
+    │   │   ├── NewOrderRequest.Item.java
+    │   │   └── UpdateStatusRequest.java
     │   └── response/
     │       ├── OrderResponse.java
-    │       ├── OrderItemResponse.java
-    │       ├── OrderSummaryResponse.java
-    │       └── OrderPageResponse.java
+    │       ├── OrderResponse.Item.java
+    │       ├── SummaryResponse.java
+    │       └── PageResponse.java
     ├── application/
-    │   ├── OrderResultMapper.java
+    │   ├── DataMapper.java
     │   ├── OrderService.java
-    │   ├── PendingOrderProcessor.java
+    │   ├── OrderProcessor.java
     │   ├── command/
-    │   │   └── CreateOrderCommand.java
+    │   │   └── CreateOrderData.java
     │   ├── result/
-    │   │   ├── OrderDetailsResult.java
-    │   │   └── OrderPageResult.java
+    │   │   ├── OrderDetails.java
+    │   │   └── OrderPage.java
     │   └── exception/
     │       ├── InvalidOrderException.java
     │       ├── OrderNotFoundException.java
@@ -67,7 +67,7 @@ backend/ordersystem/src/main/java/com/rkk/orderprocessing/
     │   ├── OrderItemEntity.java
     │   └── OrderRepository.java
     └── job/
-        └── PendingOrderScheduler.java
+        └── OrderScheduler.java
 ```
 
 Migrations live in `backend/ordersystem/src/main/resources/db/migration/`. Tests mirror these packages under `src/test/java`.
@@ -86,13 +86,13 @@ Allowed source dependencies are `api -> application`, `job -> application`, `app
 | `OrderItemEntity` | Map item data and provide a named creation method for a validated item value | Have an independent repository/lifecycle |
 | `OrderRepository` | JPA detail/list reads and explicit conditional mutations | Implement product policy or expose entities to controllers |
 | Application `command`/`result` records | Carry persistence-free use-case input/output; nested item/summary records avoid extra files | Carry HTTP or JPA annotations |
-| `OrderResultMapper` | Convert entities/projections to detached application results while the transaction is open | Return API DTOs or query the database |
+| `DataMapper` | Convert entities/projections to detached application results while the transaction is open | Return API DTOs or query the database |
 | `OrderService` | Act as the use-case facade: validate rules, own transactions, and classify 404/409 | Schedule itself, expose entities, or build HTTP responses |
-| `PendingOrderProcessor` | Run the transactional set-based pending update and return affected count | Poll/save rows individually |
-| `PendingOrderScheduler` | Own the fixed `@Scheduled(cron = "0 */5 * * * *", zone = "UTC")` adapter and invoke the processor | Contain transaction or lifecycle rules |
+| `OrderProcessor` | Run the transactional set-based pending update and return affected count | Poll/save rows individually |
+| `OrderScheduler` | Own the fixed `@Scheduled(cron = "0 */5 * * * *", zone = "UTC")` adapter and invoke the processor | Contain transaction or lifecycle rules |
 | `OrderController` | Validate inputs, call service, set HTTP status/headers | Open transactions or access repositories |
 | API `request`/`response` records | Define the immutable HTTP boundary; collection-bearing records take defensive snapshots without hiding values that Jakarta Validation must report | Carry persistence annotations |
-| `OrderApiMapper` | Convert API requests to commands and application results to responses | Import persistence types, query data, or enforce business rules |
+| `ApiMapper` | Convert API requests to commands and application results to responses | Import persistence types, query data, or enforce business rules |
 | `ApiExceptionHandler` | Produce stable problem-details responses | Leak SQL, stack traces, or secrets |
 
 All Spring components above are stateless, constructor-injected singleton beans. JPA entities and persistence contexts remain transaction-local and are never cached in singleton fields. `Clock.systemUTC()` is immutable; any mutable test clock is test-local.
@@ -103,12 +103,12 @@ The application surface is concrete and small; no one-implementation service int
 
 | Operation | Contract | Transaction |
 | --- | --- | --- |
-| `OrderService.create(CreateOrderCommand)` | Return `OrderDetailsResult`; reject invalid aggregate input | Read-write |
+| `OrderService.create(CreateOrderData)` | Return `OrderDetails`; reject invalid aggregate input | Read-write |
 | `OrderService.get(UUID)` | Return detached detail or throw `OrderNotFoundException` | Read-only |
-| `OrderService.list(String?, int page, int size)` | Parse an optional exact status and return `OrderPageResult`; choose filtered or unfiltered summary query | Read-only |
-| `OrderService.advanceStatus(UUID, String)` | Parse the target, apply the one legal predecessor rule, and return detail, 404, or 409 | Read-write |
+| `OrderService.list(String?, int page, int size)` | Parse an optional exact status and return `OrderPage`; choose filtered or unfiltered summary query | Read-only |
+| `OrderService.updateStatus(UUID, String)` | Parse the target, apply the one legal predecessor rule, and return detail, 404, or 409 | Read-write |
 | `OrderService.cancel(UUID)` | Compare-and-set `PENDING -> CANCELLED`; return detail, 404, or 409 | Read-write |
-| `PendingOrderProcessor.processPending()` | Bulk-update pending rows using one timestamp; return affected count | Read-write |
+| `OrderProcessor.processPending()` | Bulk-update pending rows using one timestamp; return affected count | Read-write |
 
 `OrderRepository` provides aggregate detail lookup, filtered and unfiltered summary-page projections, existence lookup, `save`, one expected-status mutation, and one pending bulk mutation. Mutation methods return affected row counts and clear the persistence context before any response fetch. One private `OrderService` helper performs conditional update -> detail fetch on success -> existence classification on zero, so advance and cancel cannot drift.
 
@@ -151,11 +151,11 @@ conditional mutation.
 
 ### Create
 
-1. HTTP validation checks item count, product ID, quantity, and unknown fields; `OrderApiMapper` creates a `CreateOrderCommand`.
+1. HTTP validation checks item count, product ID, quantity, and unknown fields; `ApiMapper` creates a `CreateOrderData`.
 2. `OrderService` rejects exact duplicate product IDs before persistence work.
 3. One `Clock.instant()` and UUID are assigned; named item/aggregate creation methods recheck the 1–100 cardinality boundary before establishing positions, parent links, initial status, and timestamps.
 4. One transaction persists the parent and all children through cascade persist.
-5. `OrderResultMapper` creates a detached result. After commit, the API mapper creates the response and the controller returns 201 with `Location`.
+5. `DataMapper` creates a detached result. After commit, the API mapper creates the response and the controller returns 201 with `Location`.
 
 Any failure rolls back parent and items. Create retries are not deduplicated in V1.
 

@@ -34,15 +34,15 @@ import org.springframework.transaction.support.TransactionTemplate;
 /** Direct PostgreSQL integration proof for the transactional pending-order handler. */
 @SpringBootTest
 @ActiveProfiles("test")
-@Import({PostgresTestConfiguration.class, PendingOrderProcessorIT.BackwardClockConfiguration.class})
-class PendingOrderProcessorIT {
+@Import({PostgresTestConfiguration.class, OrderProcessorIT.BackwardClockConfiguration.class})
+class OrderProcessorIT {
 
     private static final Instant INITIAL_UPDATED_AT = Instant.parse("2026-07-13T10:00:00Z");
     private static final Instant STATUS_UPDATED_AT = Instant.parse("2026-07-13T11:00:00Z");
     private static final Instant BACKWARD_PROCESSOR_TIME = Instant.parse("2026-07-13T09:00:00Z");
 
     @Autowired
-    private PendingOrderProcessor processor;
+    private OrderProcessor processor;
 
     @Autowired
     private OrderRepository repository;

@@ -16,11 +16,17 @@ import java.util.UUID;
 public record OrderResponse(
         UUID id,
         String status,
-        List<OrderItemResponse> items,
+        List<Item> items,
         Instant createdAt,
         Instant updatedAt) {
 
     /** Prevents later mutation of a response after it leaves the mapper. */
+
+    /**
+     * One immutable item in an order-detail response.
+     */
+    public record Item(String productId, int quantity) {}
+
     public OrderResponse {
         items = List.copyOf(items);
     }

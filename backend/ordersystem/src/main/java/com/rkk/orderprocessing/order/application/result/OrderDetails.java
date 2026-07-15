@@ -14,7 +14,7 @@ import java.util.UUID;
  * @param createdAt when the order was created
  * @param updatedAt when the order was last updated
  */
-public record OrderDetailsResult(
+public record OrderDetails(
         UUID id,
         String status,
         List<Item> items,
@@ -22,7 +22,7 @@ public record OrderDetailsResult(
         Instant updatedAt) {
 
     /** Copies the item list so the result stays unchanged after the transaction closes. */
-    public OrderDetailsResult {
+    public OrderDetails {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(status, "status");
         items = List.copyOf(items);

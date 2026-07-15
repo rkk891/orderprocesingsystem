@@ -45,7 +45,7 @@ than shared mutable database state.
 - `order/persistence/OrderEntityTest.java`: fast tests for named creation methods,
   zero/101-item rejection before parent attachment, the accepted 100-item
   boundary, initial state/timestamps, positions, and parent links without Spring.
-- `order/api/request/CreateOrderRequestTest.java`: null-preserving defensive
+- `order/api/request/NewOrderRequestTest.java`: null-preserving defensive
   collection snapshots and immutable request access without Spring MVC.
 - `order/application/OrderServiceTest.java`: commands, item validation, query
   orchestration, detached results, and shared 404/409 classification with a
@@ -56,17 +56,17 @@ than shared mutable database state.
   mapping, strict Jackson behavior, query semantics, tracing, and global errors.
 - `order/persistence/OrderRepositoryIT.java`: mappings, constraints, ordering,
   conditional mutations, and Flyway on an empty PostgreSQL container.
-- `order/application/PendingOrderProcessorTest.java`: processor delegation, one
+- `order/application/OrderProcessorTest.java`: processor delegation, one
   clock instant, and affected count.
-- `order/application/PendingOrderProcessorIT.java`: pending-only bulk behavior,
+- `order/application/OrderProcessorIT.java`: pending-only bulk behavior,
   exact counts, rerun idempotence, terminal-state preservation, and backward-clock
   monotonicity against PostgreSQL.
-- `order/application/PendingOrderProcessorSnapshotIT.java`: deterministic
+- `order/application/OrderProcessorSnapshotIT.java`: deterministic
   PostgreSQL statement-snapshot proof using distinct transactions and
   `pg_blocking_pids`, without sleeps.
 - `order/persistence/OrderConcurrencyIT.java`: cancel-versus-job, update-versus-update,
   and overlapping-job races using separate transactions and barriers—not sleeps.
-- `order/job/PendingOrderSchedulerTest.java`: one focused cron/UTC wiring test;
+- `order/job/OrderSchedulerTest.java`: one focused cron/UTC wiring test;
   it verifies scheduler-to-processor delegation, success/failure metrics, and
   never waits five real minutes.
 - `OrderProcessingApplicationIT.java`: clean Spring context, Flyway migration,

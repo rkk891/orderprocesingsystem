@@ -19,12 +19,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.rkk.orderprocessing.order.application.OrderService;
-import com.rkk.orderprocessing.order.application.command.CreateOrderCommand;
+import com.rkk.orderprocessing.order.application.command.CreateOrderData;
 import com.rkk.orderprocessing.order.application.exception.InvalidOrderException;
 import com.rkk.orderprocessing.order.application.exception.OrderNotFoundException;
 import com.rkk.orderprocessing.order.application.exception.OrderStateConflictException;
-import com.rkk.orderprocessing.order.application.result.OrderDetailsResult;
-import com.rkk.orderprocessing.order.application.result.OrderPageResult;
+import com.rkk.orderprocessing.order.application.result.OrderDetails;
+import com.rkk.orderprocessing.order.application.result.OrderPage;
 import com.rkk.orderprocessing.shared.api.ApiExceptionHandler;
 import com.rkk.orderprocessing.shared.api.RequestTraceFilter;
 import java.time.Instant;
@@ -48,7 +48,7 @@ import java.util.stream.Stream;
 
 /** Checks HTTP validation and the public success and error response shapes. */
 @WebMvcTest(OrderController.class)
-@Import({OrderApiMapper.class, ApiExceptionHandler.class, RequestTraceFilter.class})
+@Import({ApiMapper.class, ApiExceptionHandler.class, RequestTraceFilter.class})
 class OrderControllerMockMvcTest {
 
     private static final UUID ORDER_ID = UUID.fromString("7bd36f1f-90d4-41dd-8a89-9aa622dfc0ad");
@@ -62,7 +62,7 @@ class OrderControllerMockMvcTest {
 
     @Test
     void createReturns201LocationAndFullDetail() throws Exception {
-        when(service.create(any(CreateOrderCommand.class))).thenReturn(detail("PENDING"));
+        when(service.create(any(CreateOrderData.class))).thenReturn(detail("PENDING"));
 
         mockMvc.perform(post("/api/v1/orders")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -76,7 +76,7 @@ class OrderControllerMockMvcTest {
                 .andExpect(jsonPath("$.status").value("PENDING"))
                 .andExpect(jsonPath("$.items[0].productId").value("SKU-1"));
 
-        ArgumentCaptor<CreateOrderCommand> command = ArgumentCaptor.forClass(CreateOrderCommand.class);
+        ArgumentCaptor<CreateOrderData> command = ArgumentCaptor.forClass(CreateOrderData.class);
         verify(service).create(command.capture());
         org.assertj.core.api.Assertions.assertThat(command.getValue().items().getFirst().quantity())
                 .isEqualTo(2);
@@ -110,7 +110,7 @@ class OrderControllerMockMvcTest {
     @ParameterizedTest
     @ValueSource(strings = {"1.0", "1e0"})
     void createRejectsNonIntegerNumericRepresentations(String quantityJson) throws Exception {
-        when(service.create(any(CreateOrderCommand.class))).thenReturn(detail("PENDING"));
+        when(service.create(any(CreateOrderData.class))).thenReturn(detail("PENDING"));
 
         assertProblem(
                 mockMvc.perform(post("/api/v1/orders")
@@ -125,7 +125,7 @@ class OrderControllerMockMvcTest {
     @ParameterizedTest
     @MethodSource("duplicateJsonBodies")
     void createRejectsDuplicateJsonMembers(String requestBody) throws Exception {
-        when(service.create(any(CreateOrderCommand.class))).thenReturn(detail("PENDING"));
+        when(service.create(any(CreateOrderData.class))).thenReturn(detail("PENDING"));
 
         assertProblem(
                 mockMvc.perform(post("/api/v1/orders")
@@ -149,8 +149,8 @@ class OrderControllerMockMvcTest {
 
     @Test
     void listUsesDefaultsAndMapsPageMetadata() throws Exception {
-        when(service.list(null, 0, 20)).thenReturn(new OrderPageResult(
-                List.of(new OrderPageResult.Summary(
+        when(service.list(null, 0, 20)).thenReturn(new OrderPage(
+                List.of(new OrderPage.Summary(
                         ORDER_ID, "PENDING", 2, CREATED, CREATED)),
                 0,
                 20,
@@ -186,8 +186,8 @@ class OrderControllerMockMvcTest {
 
     @Test
     void listMapsAFilteredPageAndAValidEmptyPage() throws Exception {
-        when(service.list("CANCELLED", 1, 5)).thenReturn(new OrderPageResult(
-                List.of(new OrderPageResult.Summary(
+        when(service.list("CANCELLED", 1, 5)).thenReturn(new OrderPage(
+                List.of(new OrderPage.Summary(
                         ORDER_ID, "CANCELLED", 1, CREATED, CREATED)),
                 1,
                 5,
@@ -195,7 +195,7 @@ class OrderControllerMockMvcTest {
                 2,
                 false,
                 true));
-        when(service.list("DELIVERED", 4, 10)).thenReturn(new OrderPageResult(
+        when(service.list("DELIVERED", 4, 10)).thenReturn(new OrderPage(
                 List.of(),
                 4,
                 10,
@@ -231,7 +231,7 @@ class OrderControllerMockMvcTest {
     @Test
     void retrieveAndTransitionSuccessReturnFullUpdatedDetails() throws Exception {
         when(service.get(ORDER_ID)).thenReturn(detail("PROCESSING"));
-        when(service.advanceStatus(ORDER_ID, "SHIPPED")).thenReturn(detail("SHIPPED"));
+        when(service.updateStatus(ORDER_ID, "SHIPPED")).thenReturn(detail("SHIPPED"));
 
         mockMvc.perform(get("/api/v1/orders/{orderId}", ORDER_ID))
                 .andExpect(status().isOk())
@@ -248,7 +248,7 @@ class OrderControllerMockMvcTest {
                 .andExpect(jsonPath("$.updatedAt").value(CREATED.toString()));
 
         verify(service).get(ORDER_ID);
-        verify(service).advanceStatus(ORDER_ID, "SHIPPED");
+        verify(service).updateStatus(ORDER_ID, "SHIPPED");
     }
 
     @Test
@@ -265,7 +265,7 @@ class OrderControllerMockMvcTest {
                 404,
                 "ORDER_NOT_FOUND");
 
-        when(service.advanceStatus(ORDER_ID, "SHIPPED"))
+        when(service.updateStatus(ORDER_ID, "SHIPPED"))
                 .thenThrow(new OrderStateConflictException(ORDER_ID));
         assertProblem(
                 mockMvc.perform(patch("/api/v1/orders/{orderId}/status", ORDER_ID)
@@ -404,11 +404,11 @@ class OrderControllerMockMvcTest {
                 .andExpect(jsonPath("$", aMapWithSize(8)));
     }
 
-    private static OrderDetailsResult detail(String status) {
-        return new OrderDetailsResult(
+    private static OrderDetails detail(String status) {
+        return new OrderDetails(
                 ORDER_ID,
                 status,
-                List.of(new OrderDetailsResult.Item("SKU-1", 2)),
+                List.of(new OrderDetails.Item("SKU-1", 2)),
                 CREATED,
                 CREATED);
     }

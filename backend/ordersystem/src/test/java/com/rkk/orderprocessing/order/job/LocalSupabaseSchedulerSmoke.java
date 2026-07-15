@@ -2,7 +2,7 @@ package com.rkk.orderprocessing.order.job;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.rkk.orderprocessing.order.application.PendingOrderProcessor;
+import com.rkk.orderprocessing.order.application.OrderProcessor;
 import com.rkk.orderprocessing.order.domain.OrderStatus;
 import com.rkk.orderprocessing.order.persistence.OrderEntity;
 import com.rkk.orderprocessing.order.persistence.OrderItemEntity;
@@ -28,7 +28,7 @@ class LocalSupabaseSchedulerSmoke {
     private static final Instant CREATED_AT = Instant.parse("2026-07-13T12:00:00Z");
 
     @Autowired
-    private PendingOrderProcessor processor;
+    private OrderProcessor processor;
 
     @Autowired
     private OrderRepository repository;
@@ -46,7 +46,7 @@ class LocalSupabaseSchedulerSmoke {
         SimpleMeterRegistry meters = new SimpleMeterRegistry();
 
         try {
-            new PendingOrderScheduler(processor, meters).processPendingOrders();
+            new OrderScheduler(processor, meters).processPendingOrders();
 
             assertThat(repository.findDetailById(orderId).orElseThrow().getStatus())
                     .isEqualTo(OrderStatus.PROCESSING);

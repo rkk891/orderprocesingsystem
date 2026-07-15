@@ -4,20 +4,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.rkk.orderprocessing.order.application.PendingOrderProcessor;
+import com.rkk.orderprocessing.order.application.OrderProcessor;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.lang.reflect.Method;
 import org.junit.jupiter.api.Test;
 import org.springframework.scheduling.annotation.Scheduled;
 
-class PendingOrderSchedulerTest {
+class OrderSchedulerTest {
 
     @Test
     void delegatesOneRunAndRecordsAffectedRows() {
-        PendingOrderProcessor processor = org.mockito.Mockito.mock(PendingOrderProcessor.class);
+        OrderProcessor processor = org.mockito.Mockito.mock(OrderProcessor.class);
         SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
         when(processor.processPending()).thenReturn(3);
-        PendingOrderScheduler scheduler = new PendingOrderScheduler(processor, meterRegistry);
+        OrderScheduler scheduler = new OrderScheduler(processor, meterRegistry);
 
         scheduler.processPendingOrders();
 
@@ -29,7 +29,7 @@ class PendingOrderSchedulerTest {
 
     @Test
     void declaresTheFixedUtcFiveMinuteSchedule() throws NoSuchMethodException {
-        Method scheduledMethod = PendingOrderScheduler.class.getMethod("processPendingOrders");
+        Method scheduledMethod = OrderScheduler.class.getMethod("processPendingOrders");
         Scheduled scheduled = scheduledMethod.getAnnotation(Scheduled.class);
 
         assertThat(scheduled.cron()).isEqualTo("0 */5 * * * *");
@@ -38,10 +38,10 @@ class PendingOrderSchedulerTest {
 
     @Test
     void recordsAndSuppressesFailedRunsWithoutRecordingAffectedRows() {
-        PendingOrderProcessor processor = org.mockito.Mockito.mock(PendingOrderProcessor.class);
+        OrderProcessor processor = org.mockito.Mockito.mock(OrderProcessor.class);
         SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
         when(processor.processPending()).thenThrow(new IllegalStateException("database unavailable"));
-        PendingOrderScheduler scheduler = new PendingOrderScheduler(processor, meterRegistry);
+        OrderScheduler scheduler = new OrderScheduler(processor, meterRegistry);
 
         scheduler.processPendingOrders();
 

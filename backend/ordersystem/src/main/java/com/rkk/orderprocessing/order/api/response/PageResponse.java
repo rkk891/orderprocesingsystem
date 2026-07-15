@@ -13,8 +13,8 @@ import java.util.List;
  * @param first true if this is the first page.
  * @param last true if this is the last page.
  */
-public record OrderPageResponse(
-        List<OrderSummaryResponse> content,
+public record PageResponse(
+        List<SummaryResponse> content,
         int page,
         int size,
         long totalElements,
@@ -23,7 +23,7 @@ public record OrderPageResponse(
         boolean last) {
 
     /** Keeps the page immutable after mapping. */
-    public OrderPageResponse {
+    public PageResponse {
         content = List.copyOf(content);
     }
 }

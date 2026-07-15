@@ -13,13 +13,13 @@ import java.util.List;
  *
  * @param items the items requested for the new order; invalid or null values are kept for service validation
  */
-public record CreateOrderCommand(List<Item> items) {
+public record CreateOrderData(List<Item> items) {
 
     /**
-     * Copies the item list so the caller cannot change this command after creating it.
+     * Copies the item list so the caller cannot change this data after creating it.
      * Null values are kept so {@code OrderService} can return the normal validation error.
      */
-    public CreateOrderCommand {
+    public CreateOrderData {
         items = items == null
                 ? null
                 : Collections.unmodifiableList(new ArrayList<>(items));

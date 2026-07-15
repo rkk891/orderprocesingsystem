@@ -10,9 +10,16 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>The scheduler only decides when to run. This service owns the transaction and database work,
  * which also makes the same operation easy to call directly from tests.</p>
+ *
+ * <p><b>Annotation Mechanics:</b>
+ * <ul>
+ *   <li>{@code @Transactional}: Spring intercepts method calls to this class, opening a database
+ *   transaction before the method executes. It commits the transaction if the method returns normally,
+ *   and automatically rolls it back if a {@code RuntimeException} is thrown, preventing partial updates.</li>
+ * </ul>
  */
 @Service
-public class PendingOrderProcessor {
+public class OrderProcessor {
 
     private final OrderRepository repository;
     private final Clock clock;
@@ -23,7 +30,7 @@ public class PendingOrderProcessor {
      * @param repository reads and updates saved orders
      * @param clock supplies the timestamp written to updated orders
      */
-    public PendingOrderProcessor(OrderRepository repository, Clock clock) {
+    public OrderProcessor(OrderRepository repository, Clock clock) {
         this.repository = repository;
         this.clock = clock;
     }

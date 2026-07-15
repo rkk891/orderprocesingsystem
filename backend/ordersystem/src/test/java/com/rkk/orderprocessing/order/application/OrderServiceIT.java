@@ -3,7 +3,7 @@ package com.rkk.orderprocessing.order.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.rkk.orderprocessing.order.application.command.CreateOrderCommand;
+import com.rkk.orderprocessing.order.application.command.CreateOrderData;
 import com.rkk.orderprocessing.testsupport.PostgresTestConfiguration;
 import java.sql.SQLException;
 import java.util.List;
@@ -45,9 +45,9 @@ class OrderServiceIT {
                 """);
 
         try {
-            assertThatThrownBy(() -> service.create(new CreateOrderCommand(List.of(
-                    new CreateOrderCommand.Item("ROLLBACK-OK", 1),
-                    new CreateOrderCommand.Item("ROLLBACK-FAIL", 1)))))
+            assertThatThrownBy(() -> service.create(new CreateOrderData(List.of(
+                    new CreateOrderData.Item("ROLLBACK-OK", 1),
+                    new CreateOrderData.Item("ROLLBACK-FAIL", 1)))))
                     .isInstanceOf(RuntimeException.class)
                     .satisfies(exception -> {
                         Throwable rootCause = rootCauseOf(exception);

@@ -90,7 +90,7 @@ PostgreSQL 17.6; V1 migrates an empty schema before Hibernate validation.
    result records under `order/application/command` and
    `order/application/result`, `order/api/OrderController.java`, request/response
    records under `order/api/request` and `order/api/response`, and
-   `OrderApiMapper`. Persist aggregate creation in one transaction; API code must
+   `ApiMapper`. Persist aggregate creation in one transaction; API code must
    not import persistence types.
 2. **List:** add optional exact `OrderStatus`, validated page/size, response
    metadata, and fixed `createdAt DESC, id DESC` ordering. Prove every order is
@@ -112,8 +112,8 @@ Details, and sanitized failures. Newman then verified the running endpoints.
 
 - Add repository bulk mutation `PENDING -> PROCESSING` with one conditional SQL
   statement that also updates UTC time and returns affected count.
-- Add `order/application/PendingOrderProcessor.java` as the directly testable
-  transactional use case and `order/job/PendingOrderScheduler.java` as the thin UTC cron
+- Add `order/application/OrderProcessor.java` as the directly testable
+  transactional use case and `order/job/OrderScheduler.java` as the thin UTC cron
   adapter (`0 */5 * * * *`).
 - Record post-commit scheduler metrics/logs for outcome, affected rows, and
   duration without request/item/customer data or raw throwable details.

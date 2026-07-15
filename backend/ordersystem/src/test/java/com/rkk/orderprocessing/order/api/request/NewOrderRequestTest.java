@@ -7,25 +7,25 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-class CreateOrderRequestTest {
+class NewOrderRequestTest {
 
     @Test
     void snapshotsItemsWithoutDiscardingValuesNeededByValidation() {
-        List<CreateOrderItemRequest> source = new ArrayList<>();
-        source.add(new CreateOrderItemRequest("SKU-1", 1));
+        List<NewOrderRequest.Item> source = new ArrayList<>();
+        source.add(new NewOrderRequest.Item("SKU-1", 1));
         source.add(null);
 
-        CreateOrderRequest request = new CreateOrderRequest(source);
+        NewOrderRequest request = new NewOrderRequest(source);
         source.clear();
 
         assertThat(request.items())
-                .containsExactly(new CreateOrderItemRequest("SKU-1", 1), null);
+                .containsExactly(new NewOrderRequest.Item("SKU-1", 1), null);
         assertThatThrownBy(() -> request.items().clear())
                 .isInstanceOf(UnsupportedOperationException.class);
     }
 
     @Test
     void preservesANullListForJakartaValidation() {
-        assertThat(new CreateOrderRequest(null).items()).isNull();
+        assertThat(new NewOrderRequest(null).items()).isNull();
     }
 }

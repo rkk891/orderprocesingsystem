@@ -2,7 +2,7 @@ package com.rkk.orderprocessing.order.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.rkk.orderprocessing.order.application.PendingOrderProcessor;
+import com.rkk.orderprocessing.order.application.OrderProcessor;
 import com.rkk.orderprocessing.order.domain.OrderStatus;
 import com.rkk.orderprocessing.testsupport.PostgresTestConfiguration;
 import java.time.Instant;
@@ -46,7 +46,7 @@ class OrderConcurrencyIT {
     private OrderRepository repository;
 
     @Autowired
-    private PendingOrderProcessor pendingOrderProcessor;
+    private OrderProcessor pendingOrderProcessor;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;

@@ -1,13 +1,12 @@
 package com.rkk.orderprocessing.order.api;
 
-import com.rkk.orderprocessing.order.api.request.CreateOrderRequest;
-import com.rkk.orderprocessing.order.api.response.OrderItemResponse;
-import com.rkk.orderprocessing.order.api.response.OrderPageResponse;
+import com.rkk.orderprocessing.order.api.request.NewOrderRequest;
+import com.rkk.orderprocessing.order.api.response.PageResponse;
 import com.rkk.orderprocessing.order.api.response.OrderResponse;
-import com.rkk.orderprocessing.order.api.response.OrderSummaryResponse;
-import com.rkk.orderprocessing.order.application.command.CreateOrderCommand;
-import com.rkk.orderprocessing.order.application.result.OrderDetailsResult;
-import com.rkk.orderprocessing.order.application.result.OrderPageResult;
+import com.rkk.orderprocessing.order.api.response.SummaryResponse;
+import com.rkk.orderprocessing.order.application.command.CreateOrderData;
+import com.rkk.orderprocessing.order.application.result.OrderDetails;
+import com.rkk.orderprocessing.order.application.result.OrderPage;
 import org.springframework.stereotype.Component;
 
 /**
@@ -15,19 +14,19 @@ import org.springframework.stereotype.Component;
  * This keeps HTTP-specific request and response classes out of {@code OrderService}.
  */
 @Component
-public class OrderApiMapper {
+public class ApiMapper {
 
     /**
      * Converts validated HTTP input into the command used by {@code OrderService}.
      *
      * @param request the create-order request received by the controller
-     * @return a command containing the same products and quantities
+     * @return a data object containing the same products and quantities
      */
-    public CreateOrderCommand toCommand(CreateOrderRequest request) {
+    public CreateOrderData toData(NewOrderRequest request) {
         var items = request.items().stream()
-                .map(item -> new CreateOrderCommand.Item(item.productId(), item.quantity()))
+                .map(item -> new CreateOrderData.Item(item.productId(), item.quantity()))
                 .toList();
-        return new CreateOrderCommand(items);
+        return new CreateOrderData(items);
     }
 
     /**
@@ -36,9 +35,9 @@ public class OrderApiMapper {
      * @param result the complete order returned by the service
      * @return the response sent to the API client
      */
-    public OrderResponse toResponse(OrderDetailsResult result) {
+    public OrderResponse toResponse(OrderDetails result) {
         var items = result.items().stream()
-                .map(item -> new OrderItemResponse(item.productId(), item.quantity()))
+                .map(item -> new OrderResponse.Item(item.productId(), item.quantity()))
                 .toList();
         return new OrderResponse(
                 result.id(),
@@ -54,9 +53,9 @@ public class OrderApiMapper {
      * @param result the page returned by the service
      * @return the response containing summaries and page information
      */
-    public OrderPageResponse toResponse(OrderPageResult result) {
+    public PageResponse toResponse(OrderPage result) {
         var content = result.content().stream()
-                .map(summary -> new OrderSummaryResponse(
+                .map(summary -> new SummaryResponse(
                         summary.id(),
                         summary.status(),
                         summary.itemCount(),
@@ -64,7 +63,7 @@ public class OrderApiMapper {
                         summary.updatedAt()))
                 .toList();
 
-        return new OrderPageResponse(
+        return new PageResponse(
                 content,
                 result.page(),
                 result.size(),

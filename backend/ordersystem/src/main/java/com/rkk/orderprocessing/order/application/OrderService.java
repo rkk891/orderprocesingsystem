@@ -1,11 +1,11 @@
 package com.rkk.orderprocessing.order.application;
 
-import com.rkk.orderprocessing.order.application.command.CreateOrderCommand;
+import com.rkk.orderprocessing.order.application.command.CreateOrderData;
 import com.rkk.orderprocessing.order.application.exception.InvalidOrderException;
 import com.rkk.orderprocessing.order.application.exception.OrderNotFoundException;
 import com.rkk.orderprocessing.order.application.exception.OrderStateConflictException;
-import com.rkk.orderprocessing.order.application.result.OrderDetailsResult;
-import com.rkk.orderprocessing.order.application.result.OrderPageResult;
+import com.rkk.orderprocessing.order.application.result.OrderDetails;
+import com.rkk.orderprocessing.order.application.result.OrderPage;
 import com.rkk.orderprocessing.order.domain.OrderStatus;
 import com.rkk.orderprocessing.order.persistence.OrderEntity;
 import com.rkk.orderprocessing.order.persistence.OrderItemEntity;
@@ -23,10 +23,21 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Runs the order use cases and defines their transaction boundaries.
+ * Orchestrates business rules, validation, and database updates for orders.
  *
  * <p>Spring creates one shared {@code OrderService} object. Each request keeps its working data in
  * method-local variables, so concurrent requests do not overwrite one another. Status changes use
  * a database update that checks the current status, so only one competing request can succeed.</p>
+ *
+ * <p><b>Annotation Mechanics:</b>
+ * <ul>
+ *   <li>{@code @Transactional}: Spring creates a proxy around this class to manage transaction boundaries.
+ *   It automatically opens a transaction when a method starts, commits it on success, and rolls it
+ *   back if an unchecked exception occurs.</li>
+ *   <li>{@code @Transactional(readOnly = true)}: Used on read methods (like {@code get} and {@code list})
+ *   to optimize performance by skipping Hibernate's dirty-checking and allowing the database engine
+ *   to optimize read locks.</li>
+ * </ul>
  */
 @Service
 public class OrderService {
@@ -39,7 +50,7 @@ public class OrderService {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final OrderRepository repository;
-    private final OrderResultMapper resultMapper;
+    private final DataMapper resultMapper;
     private final Clock clock;
 
     /**
@@ -49,7 +60,7 @@ public class OrderService {
      * @param resultMapper copies saved data into application results
      * @param clock supplies timestamps and can be replaced with a fixed clock in tests
      */
-    public OrderService(OrderRepository repository, OrderResultMapper resultMapper, Clock clock) {
+    public OrderService(OrderRepository repository, DataMapper resultMapper, Clock clock) {
         this.repository = repository;
         this.resultMapper = resultMapper;
         this.clock = clock;
@@ -59,24 +70,30 @@ public class OrderService {
      * Creates a new order with status {@code PENDING} and saves the order and all of its items in
      * one transaction. If any insert fails, Spring rolls back the complete order.
      *
-     * @param command the products and quantities requested for the new order
+     * @param orderData the products and quantities requested for the new order
      * @return the complete saved order
-     * @throws InvalidOrderException if the command or any item is invalid
+     * @throws InvalidOrderException if the orderData or any item is invalid
      */
     @Transactional
-    public OrderDetailsResult create(CreateOrderCommand command) {
-        validateCreate(command);
+    public OrderDetails create(CreateOrderData orderData) {
+        // 1. Validate all business rules and constraints before allocating any entities
+        validateCreate(orderData);
 
-        List<OrderItemEntity> itemEntities = new ArrayList<>(command.items().size());
-        for (int position = 0; position < command.items().size(); position++) {
-            CreateOrderCommand.Item item = command.items().get(position);
-            // Store the position so responses keep the same item order sent by the caller.
+        // 2. Map payload items to database entities
+        List<OrderItemEntity> itemEntities = new ArrayList<>(orderData.items().size());
+        for (int position = 0; position < orderData.items().size(); position++) {
+            CreateOrderData.Item item = orderData.items().get(position);
+            // We explicitly store the position index so that when we return the response,
+            // the items are guaranteed to be in the exact same order the caller sent them.
             itemEntities.add(OrderItemEntity.create(position, item.productId(), item.quantity()));
         }
 
-        // One clock value keeps createdAt and updatedAt equal for a newly created order.
+        // 3. Construct the root Order entity
+        // We use a single clock instant so that createdAt and updatedAt match exactly on creation
         Instant timestamp = clock.instant();
         OrderEntity order = OrderEntity.createPending(UUID.randomUUID(), timestamp, itemEntities);
+
+        // 4. Save to the database and map the resulting entity back to a domain object
         return resultMapper.toDetails(repository.save(order));
     }
 
@@ -90,7 +107,7 @@ public class OrderService {
      * @throws OrderNotFoundException if no order exists with that ID
      */
     @Transactional(readOnly = true)
-    public OrderDetailsResult get(UUID orderId) {
+    public OrderDetails get(UUID orderId) {
         requireOrderId(orderId);
         return repository.findDetailById(orderId)
                 .map(resultMapper::toDetails)
@@ -108,7 +125,7 @@ public class OrderService {
      * @throws InvalidOrderException if the status, page, or size is invalid
      */
     @Transactional(readOnly = true)
-    public OrderPageResult list(String status, int page, int size) {
+    public OrderPage list(String status, int page, int size) {
         validatePage(page, size);
         PageRequest pageable = PageRequest.of(page, size);
 
@@ -133,7 +150,7 @@ public class OrderService {
      * @throws OrderStateConflictException if the requested move is not allowed or another update wins first
      */
     @Transactional
-    public OrderDetailsResult advanceStatus(UUID orderId, String requestedStatus) {
+    public OrderDetails updateStatus(UUID orderId, String requestedStatus) {
         requireOrderId(orderId);
         OrderStatus target = parseStatus(requestedStatus);
         OrderStatus predecessor = target.requiredPredecessorForManualTarget()
@@ -152,7 +169,7 @@ public class OrderService {
      * @throws OrderStateConflictException if the order is no longer pending
      */
     @Transactional
-    public OrderDetailsResult cancel(UUID orderId) {
+    public OrderDetails cancel(UUID orderId) {
         requireOrderId(orderId);
         return transition(orderId, OrderStatus.PENDING, OrderStatus.CANCELLED);
     }
@@ -169,13 +186,16 @@ public class OrderService {
      * @throws OrderNotFoundException if no order exists with the ID
      * @throws OrderStateConflictException if the saved status does not match {@code expectedStatus}
      */
-    private OrderDetailsResult transition(
+    private OrderDetails transition(
             UUID orderId,
             OrderStatus expectedStatus,
             OrderStatus targetStatus) {
+
+        // 1. Attempt the atomic update using optimistic locking
         int affected = repository.updateStatusIfExpected(
                 orderId, expectedStatus, targetStatus, clock.instant());
 
+        // 2. Success Path: Exactly one row was updated
         if (affected == 1) {
             return repository.findDetailById(orderId)
                     .map(resultMapper::toDetails)
@@ -183,15 +203,19 @@ public class OrderService {
                             "Updated order disappeared before response mapping"));
         }
 
+        // 3. Safety Check: If more than 1 row was updated, we have a catastrophic data issue
         if (affected != 0) {
             throw new IllegalStateException("Conditional order mutation affected multiple rows");
         }
 
-        // Zero rows can mean "missing" or "status already changed"; this check separates them.
+        // 4. Failure Path: Zero rows were updated.
+        // This could mean one of two things: either the order doesn't exist, OR
+        // someone else already updated it (state conflict). We check existence to find out which.
         if (!repository.existsById(orderId)) {
             throw new OrderNotFoundException(orderId);
         }
 
+        // If it exists but wasn't updated, the 'expectedStatus' must have been wrong.
         throw new OrderStateConflictException(orderId);
     }
 
@@ -237,24 +261,26 @@ public class OrderService {
     }
 
     /**
-     * Checks the complete create command and collects item errors so callers receive all useful
-     * validation feedback in one response.
+     * Checks the complete create data and collects item errors so callers receive all useful
+     * constraints in one attempt.
      *
-     * @param command the create-order input to check
-     * @throws InvalidOrderException if the command, item count, product IDs, or quantities are invalid
+     * @param orderData the create-order input to check
+     * @throws InvalidOrderException if the orderData, item count, product IDs, or quantities are invalid
      */
-    private static void validateCreate(CreateOrderCommand command) {
+    private static void validateCreate(CreateOrderData orderData) {
         List<InvalidOrderException.Violation> violations = new ArrayList<>();
 
-        if (command == null) {
+        // 1. Root Object Validation
+        if (orderData == null) {
             throw InvalidOrderException.at("$", "must be provided");
         }
 
-        List<CreateOrderCommand.Item> items = command.items();
-
+        List<CreateOrderData.Item> items = orderData.items();
         if (items == null) {
             throw InvalidOrderException.at("items", "must be provided");
         }
+
+        // 2. Collection Size Validation
         if (items.size() < MIN_ITEMS || items.size() > MAX_ITEMS) {
             violations.add(new InvalidOrderException.Violation(
                     "items", "must contain between 1 and 100 items"));
@@ -262,10 +288,11 @@ public class OrderService {
 
         Set<String> productIds = new HashSet<>();
 
+        // 3. Line-Item Deep Validation
         // This explicit index loop is used instead of a standard for-each loop so we can
         // build accurate JSON-path error messages (e.g., "items[1].quantity") for the client.
         for (int index = 0; index < items.size(); index++) {
-            CreateOrderCommand.Item item = items.get(index);
+            CreateOrderData.Item item = items.get(index);
             String itemPath = "items[" + index + "]";
 
             if (item == null) {
@@ -274,8 +301,8 @@ public class OrderService {
                 continue;
             }
 
+            // 3a. Product ID Constraints
             String productId = item.productId();
-
             if (productId == null) {
                 violations.add(new InvalidOrderException.Violation(
                         itemPath + ".productId", "must be provided"));
@@ -283,18 +310,22 @@ public class OrderService {
                 validateProductId(productId, itemPath + ".productId", violations);
 
                 // HashSet.add returns false when this exact product ID was already submitted.
+                // This guarantees we don't have duplicate items in the same order.
                 if (!productIds.add(productId)) {
                     violations.add(new InvalidOrderException.Violation(
                             itemPath + ".productId", "must be unique within the order"));
                 }
             }
 
+            // 3b. Quantity Constraints
             if (item.quantity() < MIN_QUANTITY || item.quantity() > MAX_QUANTITY) {
                 violations.add(new InvalidOrderException.Violation(
                         itemPath + ".quantity", "must be between 1 and 999"));
             }
         }
 
+        // 4. Eject if any constraints failed
+        // Throwing everything at once gives the client all errors in a single API response
         if (!violations.isEmpty()) {
             throw new InvalidOrderException(violations);
         }

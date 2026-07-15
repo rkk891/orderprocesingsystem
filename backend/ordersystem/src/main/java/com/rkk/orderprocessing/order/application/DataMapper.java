@@ -1,7 +1,7 @@
 package com.rkk.orderprocessing.order.application;
 
-import com.rkk.orderprocessing.order.application.result.OrderDetailsResult;
-import com.rkk.orderprocessing.order.application.result.OrderPageResult;
+import com.rkk.orderprocessing.order.application.result.OrderDetails;
+import com.rkk.orderprocessing.order.application.result.OrderPage;
 import com.rkk.orderprocessing.order.persistence.OrderEntity;
 import com.rkk.orderprocessing.order.persistence.OrderItemEntity;
 import com.rkk.orderprocessing.order.persistence.OrderRepository.OrderSummaryProjection;
@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
  * the API layer independent from JPA.</p>
  */
 @Component
-public class OrderResultMapper {
+public class DataMapper {
 
     /**
      * Builds the complete order result used by the API layer.
@@ -27,13 +27,13 @@ public class OrderResultMapper {
      * @param entity the order entity loaded with all of its items
      * @return an immutable result containing the order and its items
      */
-    public OrderDetailsResult toDetails(OrderEntity entity) {
+    public OrderDetails toDetails(OrderEntity entity) {
         var items = entity.getItems().stream()
                 .sorted(Comparator.comparingInt(OrderItemEntity::getPosition))
-                .map(item -> new OrderDetailsResult.Item(item.getProductId(), item.getQuantity()))
+                .map(item -> new OrderDetails.Item(item.getProductId(), item.getQuantity()))
                 .toList();
 
-        return new OrderDetailsResult(
+        return new OrderDetails(
                 entity.getId(),
                 entity.getStatus().name(),
                 items,
@@ -48,9 +48,9 @@ public class OrderResultMapper {
      * @param page the summary rows and page information returned by the repository
      * @return an immutable result containing the summaries and page information
      */
-    public OrderPageResult toPage(Page<OrderSummaryProjection> page) {
+    public OrderPage toPage(Page<OrderSummaryProjection> page) {
         var summaries = page.getContent().stream()
-                .map(summary -> new OrderPageResult.Summary(
+                .map(summary -> new OrderPage.Summary(
                         summary.getId(),
                         summary.getStatus().name(),
                         summary.getItemCount(),
@@ -58,7 +58,7 @@ public class OrderResultMapper {
                         summary.getUpdatedAt()))
                 .toList();
 
-        return new OrderPageResult(
+        return new OrderPage(
                 summaries,
                 page.getNumber(),
                 page.getSize(),

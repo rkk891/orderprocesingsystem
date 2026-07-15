@@ -15,7 +15,7 @@ import java.util.UUID;
  * @param first whether this is the first page
  * @param last whether this is the last page
  */
-public record OrderPageResult(
+public record OrderPage(
         List<Summary> content,
         int page,
         int size,
@@ -25,7 +25,7 @@ public record OrderPageResult(
         boolean last) {
 
     /** Copies the summaries so the result cannot change after the transaction closes. */
-    public OrderPageResult {
+    public OrderPage {
         content = List.copyOf(content);
     }
 
