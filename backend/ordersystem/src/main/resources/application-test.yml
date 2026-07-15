@@ -1,7 +1,0 @@
-spring:
-  config:
-    activate:
-      on-profile: test
-orders:
-  scheduler:
-    enabled: false

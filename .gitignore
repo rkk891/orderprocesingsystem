@@ -1,7 +1,0 @@
-.DS_Store
-graphify-out/
-.env
-.env.*
-!.env.example
-supabase/.branches/
-supabase/.temp/
