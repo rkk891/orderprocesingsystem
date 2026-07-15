@@ -3,6 +3,7 @@ package com.rkk.orderprocessing.order.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.rkk.orderprocessing.order.application.command.CreateOrderCommand;
 import com.rkk.orderprocessing.testsupport.PostgresTestConfiguration;
 import java.sql.SQLException;
 import java.util.List;
@@ -16,7 +17,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** Proves aggregate creation rollback through the real service transaction and PostgreSQL. */
+/** Checks that a failed create rolls back the order and every item in PostgreSQL. */
 @SpringBootTest
 @ActiveProfiles("test")
 @Import(PostgresTestConfiguration.class)

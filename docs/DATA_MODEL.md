@@ -54,7 +54,7 @@ Allowed persisted statuses are `PENDING`, `PROCESSING`, `SHIPPED`, `DELIVERED`, 
 | `product_id` | `varchar(100)` | No | Opaque, nonblank, 1–100 Unicode code points; preserved and compared exactly/case-sensitively. |
 | `quantity` | `smallint` | No | Check constrained to 1–999. |
 
-`UNIQUE (order_id, product_id)` rejects duplicate products and `UNIQUE (order_id, position)` preserves one item per position. Position bounds plus uniqueness cap an order at 100 rows. The service must still reject an empty order before persistence because a portable row constraint cannot require a parent to have a child.
+`UNIQUE (order_id, product_id)` rejects duplicate products and `UNIQUE (order_id, position)` preserves one item per position. Position bounds plus uniqueness cap an order at 100 rows. The application service and `OrderEntity.createPending` reject item counts outside 1–100 before persistence because a portable row constraint cannot require a parent to have a child.
 
 ## Constraints and indexes
 
@@ -78,7 +78,7 @@ No separate `status` index is planned: the filtered-list composite index begins 
 ## Mapping and query rules
 
 - Plain Java `OrderStatus` owns the framework-independent transition rule.
-- `OrderEntity` and `OrderItemEntity` in `order.persistence` map status as a string enum, timestamps as `Instant`, and items as an ordered child collection with cascade persist. `OrderRepository` is the Spring Data repository and owns the conditional mutations; no duplicate domain aggregate or repository adapter is planned.
+- `OrderEntity` and `OrderItemEntity` in `order.persistence` map status as a string enum, timestamps as `Instant`, and items as an ordered child collection with cascade persist. `OrderEntity.createPending` enforces the aggregate's 1–100 item cardinality before attaching children. `OrderRepository` is the Spring Data repository and owns the conditional mutations; no duplicate domain aggregate or repository adapter is planned.
 - Items never change after creation. Status changes do not rewrite child rows.
 - The application `Clock` is the sole timestamp authority: create supplies one
   instant for both order timestamps and every conditional mutation supplies its

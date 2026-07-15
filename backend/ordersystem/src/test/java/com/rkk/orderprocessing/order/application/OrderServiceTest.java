@@ -8,6 +8,12 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.rkk.orderprocessing.order.application.command.CreateOrderCommand;
+import com.rkk.orderprocessing.order.application.exception.InvalidOrderException;
+import com.rkk.orderprocessing.order.application.exception.OrderNotFoundException;
+import com.rkk.orderprocessing.order.application.exception.OrderStateConflictException;
+import com.rkk.orderprocessing.order.application.result.OrderDetailsResult;
+import com.rkk.orderprocessing.order.application.result.OrderPageResult;
 import com.rkk.orderprocessing.order.domain.OrderStatus;
 import com.rkk.orderprocessing.order.persistence.OrderEntity;
 import com.rkk.orderprocessing.order.persistence.OrderRepository;
@@ -31,7 +37,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
-/** Focused application tests for validation, transactions' decision logic, and race classification. */
+/** Checks validation, use-case decisions, and missing-order versus state-conflict results. */
 @ExtendWith(MockitoExtension.class)
 class OrderServiceTest {
 

@@ -18,13 +18,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.rkk.orderprocessing.order.application.CreateOrderCommand;
-import com.rkk.orderprocessing.order.application.InvalidOrderException;
-import com.rkk.orderprocessing.order.application.OrderDetailsResult;
-import com.rkk.orderprocessing.order.application.OrderNotFoundException;
-import com.rkk.orderprocessing.order.application.OrderPageResult;
 import com.rkk.orderprocessing.order.application.OrderService;
-import com.rkk.orderprocessing.order.application.OrderStateConflictException;
+import com.rkk.orderprocessing.order.application.command.CreateOrderCommand;
+import com.rkk.orderprocessing.order.application.exception.InvalidOrderException;
+import com.rkk.orderprocessing.order.application.exception.OrderNotFoundException;
+import com.rkk.orderprocessing.order.application.exception.OrderStateConflictException;
+import com.rkk.orderprocessing.order.application.result.OrderDetailsResult;
+import com.rkk.orderprocessing.order.application.result.OrderPageResult;
 import com.rkk.orderprocessing.shared.api.ApiExceptionHandler;
 import com.rkk.orderprocessing.shared.api.RequestTraceFilter;
 import java.time.Instant;
@@ -46,7 +46,7 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import java.util.stream.Stream;
 
-/** MVC slice contract tests for strict input handling and stable problem responses. */
+/** Checks HTTP validation and the public success and error response shapes. */
 @WebMvcTest(OrderController.class)
 @Import({OrderApiMapper.class, ApiExceptionHandler.class, RequestTraceFilter.class})
 class OrderControllerMockMvcTest {

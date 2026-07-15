@@ -23,7 +23,7 @@ than shared mutable database state.
 
 | Requirement | Domain/service proof | HTTP/operational proof | PostgreSQL/concurrency proof | Phase |
 | --- | --- | --- | --- | ---: |
-| PRD-FR-001 create | Named creation methods; exact duplicate and Unicode code-point validation; atomic rollback | Multi-item `201`; every invalid/server-owned/unknown member case is `400` | Constraints, cascade, uniqueness, and fresh-transaction aggregate rollback | 2–3 |
+| PRD-FR-001 create | Defensive request snapshot; named creation methods with 1/100-item boundary proof; exact duplicate and Unicode code-point validation; atomic rollback | Multi-item `201`; every invalid/server-owned/unknown member case is `400` | Constraints, cascade, uniqueness, and fresh-transaction aggregate rollback | 2–3 |
 | PRD-FR-002 retrieve | Complete detached aggregate; existing versus missing UUID | Detail `200`; malformed UUID `400`; absent UUID `404` | One aggregate fetch; no N+1 or lazy-session dependency | 3 |
 | PRD-FR-003 advance | Complete transition matrix; shared stale-versus-missing classification | Legal `200`; every illegal/stale case `409`; stable Problem Details | Expected-status mutation; two contenders yield one update and one conflict | 2–3 |
 | PRD-FR-004 list | Exact status and page-bound orchestration | Defaults/max/metadata; repeated documented parameter is `400`; undocumented `sort` is ignored | Fixed sort, filtered/unfiltered indexes, stable-dataset traversal without gaps/duplicates | 2–3 |
@@ -43,7 +43,10 @@ than shared mutable database state.
 
 - `order/domain/OrderStatusTest.java`: the complete pure-Java transition matrix.
 - `order/persistence/OrderEntityTest.java`: fast tests for named creation methods,
-  initial state/timestamps, item positions, and parent links without Spring.
+  zero/101-item rejection before parent attachment, the accepted 100-item
+  boundary, initial state/timestamps, positions, and parent links without Spring.
+- `order/api/request/CreateOrderRequestTest.java`: null-preserving defensive
+  collection snapshots and immutable request access without Spring MVC.
 - `order/application/OrderServiceTest.java`: commands, item validation, query
   orchestration, detached results, and shared 404/409 classification with a
   mocked repository/clock.
@@ -88,12 +91,13 @@ but never-manual status targets on missing IDs, 405/406/415 framework failures,
 and backward-clock mutations proving `updatedAt` remains monotonic.
 
 `ArchitectureRulesTest` is a small JDK/JUnit source check run by normal
-`./mvnw test`. A `Files.walk` scan rejects
-`order.api -> order.persistence`, any `order.job` dependency except
-`order.application`, framework/persistence imports from `order.domain`, and any
-remaining `com.example.ordersystem` source. A focused reflection assertion also
-requires final instance fields on scanned Spring components. No ArchUnit
-dependency is justified for these few boundaries.
+`./mvnw test`. A `Files.walk` scan requires the semantic request/response and
+command/result/exception packages to contain sources, keeps those carrier
+packages dependency-clean, rejects `order.api -> order.persistence`, any
+`order.job` dependency except `order.application`, framework/persistence imports
+from `order.domain`, and any remaining `com.example.ordersystem` source. A
+focused reflection assertion also requires final instance fields on scanned
+Spring components. No ArchUnit dependency is justified for these few boundaries.
 
 ## 5. Commands and Evidence
 
@@ -103,14 +107,14 @@ Run from `backend/ordersystem/`:
 ./mvnw clean verify
 ```
 
-The clean command passed 71 architecture/domain/entity/application/scheduler/
-MockMvc tests and 26 Testcontainers PostgreSQL 17.6 tests (97 total) on Java
+The clean command passed 77 architecture/domain/entity/application/scheduler/
+MockMvc tests and 26 Testcontainers PostgreSQL 17.6 tests (103 total) on Java
 21.0.11, with zero failures/errors/skips. It covered empty-schema Flyway, JPA
 validation, repository behavior, processor visibility/idempotence, and the three
 core race classes. Configured merge thresholds are at least
 80% line and branch coverage overall and 90% branch coverage for domain and
-application packages; the scenario matrix remains mandatory even when metrics
-pass; all gates were met. Local Supabase startup/Flyway and the Newman
+application packages, including application subpackages; the scenario matrix
+remains mandatory even when metrics pass; all gates were met. Local Supabase startup/Flyway and the Newman
 running-service smoke passed 12 requests with 12 assertions, including database
 readiness. The opt-in local
 scheduler-handler smoke passed one test and reported `affectedCount=1`.

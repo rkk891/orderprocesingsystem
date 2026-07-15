@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **Complete**; Phases 0–5 verified on 2026-07-13 |
+| Status | **Complete**; Phases 0–5 verified on 2026-07-13 and package-navigation hardening verified on 2026-07-15 |
 | Working root | `backend/ordersystem/` |
 | Target package | `com.rkk.orderprocessing` |
 | Sources of truth | [Documentation Index](INDEX.md), [PRD](PRD.md), [TRD](TRD.md), [Architecture](ARCHITECTURE.md), [LLD](LLD.md), [API Contract](API_CONTRACT.md), [Data Model](DATA_MODEL.md) |
@@ -72,8 +72,9 @@ application context starts after Flyway and JPA validation.
 - Add `order/domain/OrderStatus.java` with the framework-independent transition rule.
 - Add `order/persistence/OrderEntity.java`, `OrderItemEntity.java`, and
   `OrderRepository.java`; use named creation methods to establish the pending
-  aggregate and keep item validation in the application boundary and database
-  constraints rather than adding a factory hierarchy or duplicate models.
+  aggregate, including a defensive 1–100 item cardinality guard. Keep detailed
+  field validation in the application boundary and database constraints rather
+  than adding a factory hierarchy or duplicate models.
 
 **Check:** Flyway migrates empty Testcontainers PostgreSQL; Hibernate validates;
 domain and repository tests cover every invariant. **Risks:** JPA cascade/fetch
@@ -86,15 +87,17 @@ PostgreSQL 17.6; V1 migrates an empty schema before Hibernate validation.
 ### Phase 3 — Deliver HTTP vertical slices (complete)
 
 1. **Create + retrieve:** add `order/application/OrderService.java`, command and
-   result records, `order/api/OrderController.java`, request/response DTOs, and
+   result records under `order/application/command` and
+   `order/application/result`, `order/api/OrderController.java`, request/response
+   records under `order/api/request` and `order/api/response`, and
    `OrderApiMapper`. Persist aggregate creation in one transaction; API code must
    not import persistence types.
 2. **List:** add optional exact `OrderStatus`, validated page/size, response
    metadata, and fixed `createdAt DESC, id DESC` ordering. Prove every order is
    traversable across stable pages without duplicates or omissions.
 3. **Advance + cancel:** add expected-status conditional repository operations,
-   domain exception types, and `shared/api/ApiExceptionHandler.java` returning
-   stable problem details.
+   application exception types under `order/application/exception`, and
+   `shared/api/ApiExceptionHandler.java` returning stable problem details.
 
 **Check per slice:** domain/service tests, MockMvc contract tests, PostgreSQL IT,
 then a curl smoke matching [API Contract](API_CONTRACT.md). **Risks:** accepting
@@ -150,6 +153,23 @@ scheduler-handler smoke passed. Every PRD row has evidence.
 **Deployment boundary:** local tooling differs from managed Supabase, and public
 deployment still requires the authentication/TLS/role/operating controls kept
 outside this assessment.
+
+### Post-completion package-navigation hardening (complete)
+
+- Split HTTP carriers into `order.api.request` and `order.api.response`; split
+  application carriers/errors into `order.application.command`, `result`, and
+  `exception`, while keeping use-case services and mapping at the application
+  root.
+- Defensively snapshot create-request items without hiding nulls from Jakarta
+  Validation, and reject aggregate item counts outside 1–100 before attaching
+  children.
+- Extend source-boundary checks for the semantic packages and extend the 90%
+  application branch-coverage rule to application subpackages.
+
+**Check:** HTTP/schema/lifecycle behavior is unchanged; stale package imports are
+absent; focused tests and `./mvnw clean verify` pass.
+**Evidence:** 77 fast/unit/MockMvc tests and 26 PostgreSQL integration tests (103
+total) passed on 2026-07-15 with all JaCoCo gates met.
 
 ## 3. Change Discipline and Stop Conditions
 

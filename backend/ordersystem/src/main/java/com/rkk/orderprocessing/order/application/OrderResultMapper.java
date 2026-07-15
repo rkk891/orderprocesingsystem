@@ -1,5 +1,7 @@
 package com.rkk.orderprocessing.order.application;
 
+import com.rkk.orderprocessing.order.application.result.OrderDetailsResult;
+import com.rkk.orderprocessing.order.application.result.OrderPageResult;
 import com.rkk.orderprocessing.order.persistence.OrderEntity;
 import com.rkk.orderprocessing.order.persistence.OrderItemEntity;
 import com.rkk.orderprocessing.order.persistence.OrderRepository.OrderSummaryProjection;
@@ -8,13 +10,23 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
 /**
- * Detaches JPA aggregates and projections into immutable application results while a transaction
- * is open.
+ * Converts database-backed order data into application results while the transaction is open.
+ *
+ * <p>JPA entities stay inside the application and persistence layers. Copying their values here
+ * prevents the controller from reading lazy database state after the transaction closes and keeps
+ * the API layer independent from JPA.</p>
  */
 @Component
 public class OrderResultMapper {
 
-    /** Maps a fully loaded aggregate and preserves the submitted item order. */
+    /**
+     * Builds the complete order result used by the API layer.
+     * Items are sorted by their stored position so the response keeps the order submitted by the
+     * client.
+     *
+     * @param entity the order entity loaded with all of its items
+     * @return an immutable result containing the order and its items
+     */
     public OrderDetailsResult toDetails(OrderEntity entity) {
         var items = entity.getItems().stream()
                 .sorted(Comparator.comparingInt(OrderItemEntity::getPosition))
@@ -29,7 +41,13 @@ public class OrderResultMapper {
                 entity.getUpdatedAt());
     }
 
-    /** Maps a database summary page without loading any item collection. */
+    /**
+     * Builds a page of order summaries from the lightweight database query.
+     * This path copies only summary fields and does not load every line item for every order.
+     *
+     * @param page the summary rows and page information returned by the repository
+     * @return an immutable result containing the summaries and page information
+     */
     public OrderPageResult toPage(Page<OrderSummaryProjection> page) {
         var summaries = page.getContent().stream()
                 .map(summary -> new OrderPageResult.Summary(

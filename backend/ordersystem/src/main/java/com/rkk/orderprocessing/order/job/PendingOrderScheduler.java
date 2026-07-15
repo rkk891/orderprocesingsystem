@@ -13,10 +13,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * UTC time adapter for pending-order processing.
- *
- * <p>Business and transaction logic deliberately stays in {@link PendingOrderProcessor}; this
- * component owns only scheduling and safe operational telemetry.
+ * Starts pending-order processing every five minutes and records metrics for each run.
+ * The application processor owns the transaction and decides which orders are updated; this class
+ * only handles timing, logging, and metrics.
  */
 @Component
 @ConditionalOnProperty(prefix = "orders.scheduler", name = "enabled", havingValue = "true", matchIfMissing = true)
@@ -32,6 +31,12 @@ public final class PendingOrderScheduler {
     private final DistributionSummary affectedRows;
     private final Counter failures;
 
+    /**
+     * Initializes the scheduler and registers its metrics.
+     *
+     * @param processor the application service that performs the pending-order update.
+     * @param meterRegistry the Micrometer registry for recording telemetry.
+     */
     public PendingOrderScheduler(PendingOrderProcessor processor, MeterRegistry meterRegistry) {
         this.processor = processor;
         this.duration = Timer.builder("orders.pending.processing.duration")
@@ -46,7 +51,11 @@ public final class PendingOrderScheduler {
                 .register(meterRegistry);
     }
 
-    /** Runs one idempotent, set-based pending-order promotion. */
+    /**
+     * Asks the processor to change all orders still {@code PENDING} to {@code PROCESSING}.
+     * Running the job again is safe because orders already moved out of {@code PENDING} no longer
+     * match the database update.
+     */
     @Scheduled(cron = CRON, zone = ZONE)
     public void processPendingOrders() {
         long startedAt = System.nanoTime();

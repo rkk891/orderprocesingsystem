@@ -1,8 +1,8 @@
 package com.rkk.orderprocessing.shared.api;
 
-import com.rkk.orderprocessing.order.application.InvalidOrderException;
-import com.rkk.orderprocessing.order.application.OrderNotFoundException;
-import com.rkk.orderprocessing.order.application.OrderStateConflictException;
+import com.rkk.orderprocessing.order.application.exception.InvalidOrderException;
+import com.rkk.orderprocessing.order.application.exception.OrderNotFoundException;
+import com.rkk.orderprocessing.order.application.exception.OrderStateConflictException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.ArrayList;
@@ -28,9 +28,9 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
- * Central RFC 9457 mapper with stable safe descriptions and deterministic field violations.
- * Framework exception messages, SQL details, request bodies, and stack traces are never copied to
- * the response.
+ * Converts application and Spring exceptions into the same RFC 9457 JSON error format.
+ * Responses use fixed, client-safe messages and consistently ordered field errors. Internal
+ * framework messages, SQL details, request bodies, and stack traces are never returned.
  */
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -88,7 +88,13 @@ public class ApiExceptionHandler {
             "INTERNAL_ERROR",
             "An unexpected error occurred.");
 
-    /** Maps application and controller validation failures to deterministic 400 responses. */
+    /**
+     * Returns HTTP 400 for validation errors reported by the controller or application service.
+     *
+     * @param exception the InvalidOrderException thrown by the application.
+     * @param request the current HTTP request.
+     * @return a structured ProblemDetail response containing the validation errors.
+     */
     @ExceptionHandler(InvalidOrderException.class)
     public ResponseEntity<ProblemDetail> handleInvalidOrder(
             InvalidOrderException exception,
@@ -99,7 +105,14 @@ public class ApiExceptionHandler {
         return response(INVALID_REQUEST, request, violations, null);
     }
 
-    /** Covers request-body and other binding failures with stable client field paths. */
+    /**
+     * Returns HTTP 400 when Spring validation rejects request fields. Field paths are kept so the
+     * client can identify the exact invalid value.
+     *
+     * @param exception the BindException thrown by Spring validation.
+     * @param request the current HTTP request.
+     * @return a structured ProblemDetail response containing the binding errors.
+     */
     @ExceptionHandler(BindException.class)
     public ResponseEntity<ProblemDetail> handleBind(
             BindException exception,
@@ -107,7 +120,13 @@ public class ApiExceptionHandler {
         return response(INVALID_REQUEST, request, bindingViolations(exception), null);
     }
 
-    /** Maps malformed path/query scalar conversion, notably invalid UUIDs. */
+    /**
+     * Returns HTTP 400 when Spring cannot convert a path or query value, such as an invalid UUID.
+     *
+     * @param exception the MethodArgumentTypeMismatchException thrown during parameter resolution.
+     * @param request the current HTTP request.
+     * @return a structured ProblemDetail indicating the type mismatch.
+     */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ProblemDetail> handleTypeMismatch(
             MethodArgumentTypeMismatchException exception,
@@ -122,32 +141,59 @@ public class ApiExceptionHandler {
                 null);
     }
 
-    /** Uses an empty violation list when malformed JSON has no trustworthy field location. */
+    /**
+     * Returns HTTP 400 for malformed JSON. The field-error list stays empty because broken JSON
+     * does not always provide a reliable field location.
+     *
+     * @param request the current HTTP request.
+     * @return a structured ProblemDetail indicating a malformed request body.
+     */
     @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
     public ResponseEntity<ProblemDetail> handleUnreadableBody(
             HttpServletRequest request) {
         return response(INVALID_REQUEST, request, List.of(), null);
     }
 
-    /** Distinguishes an absent valid order ID from malformed input. */
+    /**
+     * Returns HTTP 404 when the order ID is valid but no matching order exists.
+     *
+     * @param request the current HTTP request.
+     * @return a 404 NOT FOUND ProblemDetail.
+     */
     @ExceptionHandler(OrderNotFoundException.class)
     public ResponseEntity<ProblemDetail> handleOrderNotFound(HttpServletRequest request) {
         return response(ORDER_NOT_FOUND, request, List.of(), null);
     }
 
-    /** Maps rejected or concurrently lost lifecycle mutations. */
+    /**
+     * Returns HTTP 409 when a status change is not allowed or another update changes the order first.
+     *
+     * @param request the current HTTP request.
+     * @return a 409 CONFLICT ProblemDetail.
+     */
     @ExceptionHandler(OrderStateConflictException.class)
     public ResponseEntity<ProblemDetail> handleStateConflict(HttpServletRequest request) {
         return response(ORDER_STATE_CONFLICT, request, List.of(), null);
     }
 
-    /** Provides the same problem shape for unmapped static or API resources. */
+    /**
+     * Returns HTTP 404 in the standard error format for an unknown API or static-resource path.
+     *
+     * @param request the current HTTP request.
+     * @return a 404 NOT FOUND ProblemDetail.
+     */
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ProblemDetail> handleResourceNotFound(HttpServletRequest request) {
         return response(RESOURCE_NOT_FOUND, request, List.of(), null);
     }
 
-    /** Returns 405 with the required Allow header when Spring knows supported methods. */
+    /**
+     * Returns 405 with the required Allow header when Spring knows supported methods.
+     *
+     * @param exception the HttpRequestMethodNotSupportedException thrown by Spring.
+     * @param request the current HTTP request.
+     * @return a 405 METHOD NOT ALLOWED ProblemDetail with an Allow header if known.
+     */
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ProblemDetail> handleMethodNotAllowed(
             HttpRequestMethodNotSupportedException exception,
@@ -159,19 +205,36 @@ public class ApiExceptionHandler {
         return response(METHOD_NOT_ALLOWED, request, List.of(), headers);
     }
 
-    /** Maps failed response content negotiation to a stable 406 response. */
+    /**
+     * Returns HTTP 406 when the client asks for a response format this API cannot provide.
+     *
+     * @param request the current HTTP request.
+     * @return a 406 NOT ACCEPTABLE ProblemDetail.
+     */
     @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
     public ResponseEntity<ProblemDetail> handleNotAcceptable(HttpServletRequest request) {
         return response(NOT_ACCEPTABLE, request, List.of(), null);
     }
 
-    /** Maps an unsupported request Content-Type to a stable 415 response. */
+    /**
+     * Returns HTTP 415 when the request body uses an unsupported content type.
+     *
+     * @param request the current HTTP request.
+     * @return a 415 UNSUPPORTED MEDIA TYPE ProblemDetail.
+     */
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<ProblemDetail> handleUnsupportedMediaType(HttpServletRequest request) {
         return response(UNSUPPORTED_MEDIA_TYPE, request, List.of(), null);
     }
 
-    /** Sanitizes every unexpected failure while retaining server-side correlation evidence. */
+    /**
+     * Returns a safe HTTP 500 response for an unexpected exception. The trace ID and exception type
+     * are logged on the server so the failure can be investigated without exposing details to the client.
+     *
+     * @param exception the unexpected Exception that escaped handlers.
+     * @param request the current HTTP request.
+     * @return a sanitized 500 INTERNAL SERVER ERROR ProblemDetail.
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleUnexpected(
             Exception exception,

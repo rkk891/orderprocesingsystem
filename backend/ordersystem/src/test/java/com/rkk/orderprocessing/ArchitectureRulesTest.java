@@ -18,9 +18,7 @@ import org.springframework.context.annotation.ClassPathScanningCandidateComponen
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.stereotype.Component;
 
-/**
- * Guards the small package boundary contract without introducing an architecture-test dependency.
- */
+/** Checks the package rules without adding another test library. */
 class ArchitectureRulesTest {
 
 	private static final Path MAIN_SOURCES = Path.of("src/main/java");
@@ -53,6 +51,26 @@ class ArchitectureRulesTest {
 						|| content.contains(FEATURE_PACKAGE + "domain.")
 						|| content.contains(FEATURE_PACKAGE + "job."),
 				"references a forbidden feature package");
+
+		assertNoViolations(violations);
+	}
+
+	@Test
+	void apiRequestAndResponseTypesDoNotDependOnFeatureInternals() throws IOException {
+		Path apiSources = MAIN_SOURCES.resolve("com/rkk/orderprocessing/order/api");
+		List<Path> boundaryPackages = List.of(
+				apiSources.resolve("request"),
+				apiSources.resolve("response"));
+		for (Path boundaryPackage : boundaryPackages) {
+			assertJavaSourcesExist(boundaryPackage);
+		}
+		List<String> violations = findViolations(
+				boundaryPackages.stream(),
+				content -> content.contains(FEATURE_PACKAGE + "application.")
+						|| content.contains(FEATURE_PACKAGE + "domain.")
+						|| content.contains(FEATURE_PACKAGE + "job.")
+						|| content.contains(FEATURE_PACKAGE + "persistence."),
+				"references a feature-internal type");
 
 		assertNoViolations(violations);
 	}
@@ -97,6 +115,28 @@ class ArchitectureRulesTest {
 	}
 
 	@Test
+	void applicationBoundaryTypesStayFrameworkAndPersistenceFree() throws IOException {
+		Path applicationSources = MAIN_SOURCES.resolve("com/rkk/orderprocessing/order/application");
+		List<Path> boundaryPackages = List.of(
+				applicationSources.resolve("command"),
+				applicationSources.resolve("result"),
+				applicationSources.resolve("exception"));
+		for (Path boundaryPackage : boundaryPackages) {
+			assertJavaSourcesExist(boundaryPackage);
+		}
+		List<String> violations = findViolations(
+				boundaryPackages.stream(),
+				content -> content.contains("org.springframework.")
+						|| content.contains("jakarta.")
+						|| content.contains(FEATURE_PACKAGE + "api.")
+						|| content.contains(FEATURE_PACKAGE + "job.")
+						|| content.contains(FEATURE_PACKAGE + "persistence."),
+				"references a framework, adapter, or persistence type");
+
+		assertNoViolations(violations);
+	}
+
+	@Test
 	void persistenceDependsOnlyOnDomainWithinTheFeature() throws IOException {
 		Path persistenceSources = MAIN_SOURCES.resolve("com/rkk/orderprocessing/order/persistence");
 		List<String> violations = findViolations(
@@ -131,9 +171,7 @@ class ArchitectureRulesTest {
 		assertNoViolations(violations);
 	}
 
-	/**
-	 * Finds Java sources below a path, returning an empty stream before a package exists.
-	 */
+	/** Missing packages return no files so optional package checks stay simple. */
 	private static Stream<Path> javaSources(Path root) throws IOException {
 		if (Files.notExists(root)) {
 			return Stream.empty();
@@ -141,9 +179,14 @@ class ArchitectureRulesTest {
 		return Files.walk(root).filter(path -> Files.isRegularFile(path) && path.toString().endsWith(".java"));
 	}
 
-	/**
-	 * Reads feature-local imports from one Java source file.
-	 */
+	/** Stops required package checks from passing when a directory is missing or empty. */
+	private static void assertJavaSourcesExist(Path root) throws IOException {
+		assertTrue(Files.isDirectory(root), () -> "Required package directory is missing: " + root);
+		try (Stream<Path> sources = javaSources(root)) {
+			assertTrue(sources.findAny().isPresent(), () -> "Required package has no Java sources: " + root);
+		}
+	}
+
 	private static List<String> featureImports(Path source) {
 		try {
 			return Files.readAllLines(source).stream()
@@ -157,9 +200,6 @@ class ArchitectureRulesTest {
 		}
 	}
 
-	/**
-	 * Applies a content rule to every Java source below the supplied roots.
-	 */
 	private static List<String> findViolations(
 			Stream<Path> roots, Predicate<String> forbiddenContent, String description) throws IOException {
 		List<String> violations = new ArrayList<>();
@@ -180,9 +220,6 @@ class ArchitectureRulesTest {
 		return violations;
 	}
 
-	/**
-	 * Reports every boundary violation in one actionable assertion.
-	 */
 	private static void assertNoViolations(List<String> violations) {
 		assertTrue(violations.isEmpty(), () -> "Architecture violations:\n" + String.join("\n", violations));
 	}
