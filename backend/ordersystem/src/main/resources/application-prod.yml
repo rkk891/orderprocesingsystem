@@ -6,3 +6,9 @@ spring:
     # Managed runtime replicas never receive schema-owner credentials.
     # The release migration process explicitly overrides this to true.
     enabled: false
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

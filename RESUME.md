@@ -6,7 +6,8 @@
 
 ## Verified Repository State
 
-- Git is initialized on `main`; `origin` is `git@github.com:rkk891/orderprocesingsystem.git`.
+- Git is initialized with `main` as the default branch; `origin` is
+  `https://github.com/rkk891/orderprocesingsystem.git`.
 - `backend/ordersystem/` is a Java 21/Spring Boot 4.1.0 order-processing service.
 - `pom.xml` contains the minimum MVC, validation, JPA, Flyway, PostgreSQL,
   Actuator, Testcontainers, Failsafe, JaCoCo, and MVC test-slice dependencies.
@@ -18,6 +19,11 @@
   startup and Flyway migration also completed successfully.
 - The V1 Flyway migration, order domain/persistence/application/API layers,
   scheduler, trace/error handling, and scheduler metrics are implemented.
+- Local Swagger UI renders a checked-in, contract-tested OpenAPI 3.1 artifact;
+  runtime inference and all documentation surfaces are disabled in `prod`.
+- The default `./dev` assessment path provides five profile-isolated, repeatable recruiter fixtures—one
+  per lifecycle state—and keeps scheduling disabled for a predictable Swagger
+  walkthrough. Other profiles do not load or reset the fixture callback.
 - HTTP carriers are organized under `order.api.request` and
   `order.api.response`; application commands, results, and errors are under
   `order.application.command`, `result`, and `exception`.
@@ -89,8 +95,8 @@ TRD explicitly keeps outside this assessment.
   handler smoke passed one test and reported `affectedCount=1`.
 - The `./dev` launcher was verified from outside the repository, including cold
   and warm Supabase ownership paths, HTTP readiness, signal cleanup, and Newman.
-- Final `./mvnw clean verify` passed 77 fast/unit/MockMvc tests and 26
-  Testcontainers PostgreSQL integration tests (103 total), including Flyway, JPA
+- Final `./mvnw clean verify` passed 81 fast/unit/MockMvc tests and 27
+  Testcontainers PostgreSQL integration tests (108 total), including Flyway, JPA
   validation, aggregate rollback, database readiness failure, processor snapshot
   visibility, three core races, and all JaCoCo gates.
 - Package-navigation review confirmed that the old flat DTO/application carrier

@@ -87,6 +87,16 @@ No separate `status` index is planned: the filtered-list composite index begins 
 - Detail reads load one aggregate. Paged list reads order rows by the fixed composite sort and should return summaries; item collections are not join-fetched into a pageable query.
 - Flyway migration `V1__create_orders.sql` creates both tables, constraints, and indexes. Hibernate runs with schema validation only.
 
+## Demo fixture boundary
+
+The optional `demo` profile adds Flyway location `db/demo` and runs
+`afterMigrate__seed_demo_orders.sql`. It inserts five fixed order IDs covering
+all lifecycle states plus six items, using conflict-safe upserts so warm restarts
+restore those fixed rows without duplicating them. The profile disables the
+scheduler to keep the seeded states stable. The base, `test`, and `prod`
+profiles do not load this location. Local Supabase preserves previously inserted
+rows across modes; only the demo callback owns restoring the five fixed IDs.
+
 ## Atomic mutation model
 
 Manual transitions use statements shaped as `UPDATE orders SET ..., updated_at = GREATEST(updated_at, ?) WHERE id = ? AND status = ?`; cancellation requires `status = 'PENDING'`. The scheduled handler performs one set-based `UPDATE` with `WHERE status = 'PENDING'`. The monotonic expression prevents backward application-clock movement from violating the timestamp constraint.

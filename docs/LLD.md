@@ -33,6 +33,7 @@ backend/ordersystem/src/main/java/com/rkk/orderprocessing/
 │   └── SchedulingConfiguration.java
 ├── shared/api/
 │   ├── ApiExceptionHandler.java
+│   ├── OpenApiDocumentController.java
 │   └── RequestTraceFilter.java
 └── order/
     ├── api/
@@ -71,6 +72,8 @@ backend/ordersystem/src/main/java/com/rkk/orderprocessing/
 ```
 
 Migrations live in `backend/ordersystem/src/main/resources/db/migration/`. Tests mirror these packages under `src/test/java`.
+The checked-in machine-readable API contract lives at
+`src/main/resources/openapi/openapi.yaml`.
 
 Allowed source dependencies are `api -> application`, `job -> application`, `application -> domain/persistence`, and `persistence -> domain`. API `request`/`response` records and application `command`/`result`/`exception` types are carrier-only boundary packages; architecture tests keep them free of feature-internal or framework/persistence dependencies as appropriate. `domain` imports no Spring, JPA, HTTP, or persistence type. The scheduler and controller are independent inbound adapters; neither calls the other.
 
@@ -94,6 +97,7 @@ Allowed source dependencies are `api -> application`, `job -> application`, `app
 | API `request`/`response` records | Define the immutable HTTP boundary; collection-bearing records take defensive snapshots without hiding values that Jakarta Validation must report | Carry persistence annotations |
 | `ApiMapper` | Convert API requests to commands and application results to responses | Import persistence types, query data, or enforce business rules |
 | `ApiExceptionHandler` | Produce stable problem-details responses | Leak SQL, stack traces, or secrets |
+| `OpenApiDocumentController` | Serve the checked-in OpenAPI contract while local Swagger UI is enabled | Infer behavior from controllers or expose the contract in the `prod` profile |
 
 All Spring components above are stateless, constructor-injected singleton beans. JPA entities and persistence contexts remain transaction-local and are never cached in singleton fields. `Clock.systemUTC()` is immutable; any mutable test clock is test-local.
 

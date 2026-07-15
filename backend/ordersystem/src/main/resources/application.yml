@@ -20,6 +20,14 @@ orders:
   scheduler:
     enabled: ${ORDERS_SCHEDULER_ENABLED:true}
 
+springdoc:
+  enable-default-api-docs: false
+  swagger-ui:
+    path: /swagger-ui.html
+    url: /openapi.yaml
+    disable-swagger-default-url: true
+    operations-sorter: method
+
 management:
   endpoints:
     web:

@@ -318,6 +318,112 @@ status is superseded by the implementation evidence recorded below.
 - Sensitive-data check: passed; no credentials, connection strings, or raw
   sensitive prompts were added.
 
+## 2026-07-15 — Contract-tested Swagger UI integration
+
+- Goal and scope: make the implemented V1 HTTP API easy to discover and try
+  locally without changing endpoint behavior or expanding the public-deployment
+  boundary.
+- AI/tool assistance (summary only): the main agent traced controllers, error
+  handling, configuration, and canonical API documents; an independent reviewer
+  checked Spring Boot 4/Springdoc compatibility and compared generated output
+  with the actual contract. Graphify supplied a secondary architecture view;
+  repository source and tests remained authoritative.
+- Files or decisions influenced: added Springdoc Swagger UI 3.0.3, a checked-in
+  OpenAPI 3.1 specification, conditional local specification serving, production
+  disablement, focused MockMvc contract/exposure tests, and canonical-document
+  updates.
+- Issue, uncertainty, or incorrect suggestion: default runtime inference
+  described create as 200 instead of 201 with `Location`, flattened list query
+  parameters incorrectly, gave cancellation a request body, and omitted exact
+  problem responses.
+- Correction made and why: disabled the inferred default document and configured
+  Swagger UI to load a contract-tested static specification that mirrors
+  `API_CONTRACT.md`; kept the UI and specification unavailable in `prod`.
+- Automated verification: focused Swagger tests passed; Redocly validated the
+  specification with one missing-license warning; `./mvnw clean verify` passed
+  81 fast/unit/MockMvc tests and 26 PostgreSQL integration tests (107 total) with
+  all JaCoCo gates met.
+- Human verification/review: an independent reviewer challenged compatibility
+  and contract accuracy. The main agent opened the live UI on an isolated local
+  port, confirmed all five operations and schemas, and found no browser-console
+  warnings or errors.
+- Official sources consulted: Springdoc's Spring Boot 4 documentation and 3.0.3
+  release notes.
+- Residual risk or follow-up: the lint warning remains until the repository has
+  an explicitly declared license; future API changes must update the prose
+  contract, static specification, and contract tests together.
+- Sensitive-data check: passed; no credentials, connection strings, or raw
+  sensitive prompts were added.
+
+## 2026-07-15 — Plain-language Swagger operation guidance
+
+- Goal and scope: make all five Swagger operations explain their purpose, when
+  to use them, inputs, successful result, and common failures without changing
+  HTTP behavior.
+- AI/tool assistance (summary only): the main agent traced the checked-in OpenAPI
+  document to the controller and canonical API contract; an independent reviewer
+  checked the proposed copy for accuracy and jargon. Graphify was used as a
+  secondary contract-navigation aid.
+- Files or decisions influenced: rewrote operation summaries and descriptions in
+  `openapi/openapi.yaml`, added matching usage context to `API_CONTRACT.md`, and
+  added focused assertions that every operation retains structured reader-facing
+  guidance.
+- Issue, uncertainty, or incorrect suggestion: the original descriptions led
+  with sorting, duplicate-parameter, body-byte, and transition edge cases, so a
+  reader had to infer why an endpoint existed and what a successful call returned.
+- Correction made and why: each operation now uses the same short Markdown
+  structure—`Use this when`, `What it does`, and `What to expect`—with purpose
+  before protocol details.
+- Automated verification: `./mvnw -q
+  -Dtest=OpenApiDocumentationMockMvcTest,OpenApiProductionExposureMockMvcTest test`
+  passed. Redocly confirmed the OpenAPI document is valid with the existing
+  missing-license warning. The restarted local UI rendered all three guidance
+  sections for all five operations with no browser warnings or errors.
+- Human verification/review: the user identified the readability gap directly in
+  Swagger UI; an independent review checked all five operations against the
+  implemented contract.
+- Official sources consulted: none; repository source, canonical documents, and
+  executable tests were authoritative.
+- Residual risk or follow-up: exact schema constraints remain visible because
+  they support machine validation; their adjacent descriptions remain the
+  plain-language explanation.
+- Sensitive-data check: passed; no credentials, connection strings, or raw
+  sensitive prompts were added.
+
+## 2026-07-15 — Recruiter fixtures and executable Swagger examples
+
+- Goal and scope: make the assessment demonstrable from a fresh local database
+  so Swagger returns meaningful orders without manual setup.
+- AI/tool assistance (summary only): the main agent traced the launcher, Flyway
+  locations, live API, static OpenAPI contract, and Newman workflow; a parallel
+  reviewer compared permanent seed data, API-driven setup, and an isolated demo
+  profile. Graphify provided a secondary view that was verified against source.
+- Files or decisions influenced: the default `./dev` assessment command activates
+  a `demo` profile, which adds a Flyway callback containing five fixed lifecycle
+  fixtures and disables scheduling; `./dev start` keeps scheduler behavior without
+  loading or resetting fixtures. OpenAPI operations now include status-specific
+  success and error examples.
+- Issue, uncertainty, or incorrect suggestion: the live database contained eight
+  Newman-created rows, which initially looked like seed data but would disappear
+  on a fresh database. Schema-only OpenAPI definitions also left Swagger's
+  example values unhelpful before execution.
+- Correction made and why: added repeatable, profile-isolated fixtures instead of
+  treating incidental smoke data as a demo contract or adding always-on Java
+  bootstrap code. Restarting the demo restores only its fixed IDs, and the
+  existing hardened profile remains unchanged.
+- Automated verification: focused OpenAPI and Testcontainers demo-profile tests
+  passed; `./mvnw clean verify` passed 81 fast tests and 27 PostgreSQL integration
+  tests (108 total), with all coverage gates met.
+- Human verification/review: the live API on isolated port 8081 returned all five
+  fixed states and seeded detail; Swagger and the checked-in examples were
+  reachable. Independent review found and prompted correction of shared examples
+  that had shown the wrong success/error status for several operations.
+- Official sources consulted: none; repository configuration, executable tests,
+  and the live local service were the source of truth.
+- Residual risk or follow-up: demo IDs are intentionally fixed and must never be
+  presented as application-generated customer data outside this assessment.
+- Sensitive-data check: passed; fixtures contain no credentials or personal data.
+
 ## Reusable Entry Template
 
 Copy this section for each material AI-assisted change. Summarize techniques;

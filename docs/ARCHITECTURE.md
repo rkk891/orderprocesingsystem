@@ -53,7 +53,7 @@ flowchart LR
 flowchart TB
     subgraph App["Spring Boot modular monolith"]
       API["order.api\ncontrollers, DTOs, API mapping"]
-      Handler["shared.api\nRFC 9457 error mapping"]
+      Handler["shared.api\nRFC 9457 errors + local API docs"]
       UseCases["order.application\nservice, processor, commands/results"]
       Domain["order.domain\nstatus transition rules"]
       Repo["order.persistence\nJPA reads + conditional writes"]
@@ -75,6 +75,12 @@ entities and query mechanics. API mapping crosses only immutable application
 commands/results; API code never imports persistence. The scheduler invokes the
 application processor through a separate Spring bean so transaction interception
 is effective. No controller or scheduler contains lifecycle policy.
+
+Local Swagger UI is a read-only adapter over a checked-in OpenAPI contract. A
+small conditional shared API controller serves that artifact outside the static
+resource tree; the production profile disables both surfaces. Runtime inference
+is deliberately disabled so documentation cannot silently contradict custom
+HTTP rules.
 
 ## Runtime flows and transaction boundaries
 

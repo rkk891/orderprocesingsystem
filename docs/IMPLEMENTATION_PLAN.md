@@ -171,6 +171,42 @@ absent; focused tests and `./mvnw clean verify` pass.
 **Evidence:** 77 fast/unit/MockMvc tests and 26 PostgreSQL integration tests (103
 total) passed on 2026-07-15 with all JaCoCo gates met.
 
+### Post-completion API discovery integration (complete)
+
+- Added Springdoc Swagger UI for local API discovery while keeping the checked-in
+  `openapi/openapi.yaml` artifact as the exact machine-readable HTTP contract.
+- Disabled Springdoc's inferred default document because it represented several
+  controller conventions incorrectly, including create status/headers, list
+  query parameters, cancellation bodies, and problem responses.
+- Serve the static contract and Swagger UI outside production only; the `prod`
+  profile disables both documentation endpoints.
+
+**Check:** the checked-in specification describes exactly five operations, the
+UI loads it without browser-console errors, and production returns 404 for the
+specification endpoint.
+**Evidence:** `./mvnw clean verify` passed 81 fast/unit/MockMvc tests and 26
+PostgreSQL integration tests (107 total) with all JaCoCo gates met. Redocly
+validated the specification with one non-blocking missing-license warning; no
+license was invented because the repository does not declare one.
+
+### Post-completion recruiter demo data (complete)
+
+- Made the default `./dev` assessment path load the recruiter presentation profile;
+  `./dev start` keeps the normal scheduler and does not load or reset fixtures.
+- Added a profile-isolated Flyway callback with fixed, repeatable orders covering
+  every lifecycle state; other profiles do not run the callback.
+- Disabled scheduling in demo mode so seeded states remain stable, and added
+  executable request/response examples to the checked-in OpenAPI contract.
+
+**Check:** demo startup exposes all five states, repeated startup does not
+duplicate fixtures, normal profiles do not load the callback, Swagger shows useful
+examples, and the complete verification build passes.
+
+**Evidence:** `./mvnw clean verify` passed 81 fast/unit/MockMvc tests and 27
+Testcontainers PostgreSQL integration tests (108 total). A live isolated-port
+run of plain `./dev` returned all five fixed states and the seeded detail through
+the real API; Swagger and the checked-in examples were reachable.
+
 ## 3. Change Discipline and Stop Conditions
 
 Implement one vertical slice at a time; avoid generic ports, events, distributed

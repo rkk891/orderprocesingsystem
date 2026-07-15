@@ -31,7 +31,7 @@ navigation and trade-offs.
   Testcontainers support are present without an alternate database/client stack.
 - The V1 schema, synchronous API, conditional mutations, scheduled processor,
   safe tracing/problem handling, and bounded scheduler telemetry are implemented.
-- A clean build passes 71 fast/unit/MockMvc tests and 26 PostgreSQL integration
+- A clean build passes 81 fast/unit/MockMvc tests and 27 PostgreSQL integration
   tests. Local Supabase/Flyway, Newman, and the opt-in scheduler-handler smoke
   are also green.
 
@@ -61,16 +61,21 @@ a documented compatibility issue requires a pinned override. The Maven set is
 `spring-boot-starter-webmvc`,
 `spring-boot-starter-validation`, `spring-boot-starter-data-jpa`,
 `spring-boot-starter-flyway`, Flyway's PostgreSQL database module, the PostgreSQL
-JDBC driver at runtime, and `spring-boot-starter-actuator`; retain
+JDBC driver at runtime, `spring-boot-starter-actuator`, and the pinned
+Springdoc Swagger UI starter; retain
 `spring-boot-starter-test`, `spring-boot-testcontainers`, and the Testcontainers
 PostgreSQL module in test scope. `spring-boot-starter-webmvc-test` is present
 because `OrderControllerMockMvcTest` uses the Boot MVC slice; no unused JPA test
 slice or overlapping web/database client stack is present.
 
-Do not add a runtime OpenAPI generator in the initial scaffold. The indexed
-[API Contract](API_CONTRACT.md) is canonical until Spring Boot 4.1/Jackson 3
-compatibility is verified for a specific library version; a machine-readable
-OpenAPI artifact can then be generated without changing behavior.
+Springdoc 3.0.3 supplies the local Swagger UI and is verified with Spring Boot
+4.1/Jackson 3 by the repository tests. The UI reads a checked-in OpenAPI 3.1
+artifact rather than runtime controller inference because list binding, cancel's
+no-body rule, create's 201 response, and the exact Problem Details variants
+cannot be inferred faithfully. [API Contract](API_CONTRACT.md) remains canonical;
+tests keep the machine-readable artifact aligned with its non-standard rules.
+The `prod` profile disables the UI, generated docs infrastructure, and the
+conditional contract-serving controller.
 
 ## 4. Chosen Architecture and Alternatives
 
@@ -104,7 +109,7 @@ Configuration is externalized; secrets are never committed. Fixed product rules
 | `SPRING_DATASOURCE_URL` | Yes | JDBC PostgreSQL URL for local Supabase, managed direct connection, or managed session pooler. Managed URLs require TLS. |
 | `SPRING_DATASOURCE_USERNAME` | Yes | Externalized assessment database identity; production uses the hardened runtime role described below. |
 | `SPRING_DATASOURCE_PASSWORD` | Yes | Secret supplied by environment/secret manager; never logged. |
-| `SPRING_PROFILES_ACTIVE` | No | Selects the credential-free `test` or `prod` overrides; local development uses the base profile plus datasource environment variables, which `./dev` can supply in-process. |
+| `SPRING_PROFILES_ACTIVE` | No | Selects the credential-free `test`, recruiter-only `demo`, or hardened `prod` override; local development otherwise uses the base profile plus datasource environment variables, which `./dev` can supply in-process. |
 | `ORDERS_SCHEDULER_ENABLED` | No | Defaults to `true`; set `false` only for tests, migrations, or a deliberately non-worker process. |
 | `SERVER_PORT` | No | Standard Spring override; defaults to `8080`. |
 
@@ -122,6 +127,12 @@ isolated assessment environment. Before any public or multi-replica deployment,
 split a schema-owning Flyway release identity from a non-owning runtime identity;
 Spring Boot already supports independent `spring.flyway` credentials, so that
 hardening does not require an application-architecture change.
+
+The default `./dev` assessment command activates only the `demo` profile, adds the Flyway `db/demo`
+location, inserts missing fixed recruiter fixtures after migration, and disables
+the scheduler. This is an opt-in local presentation mode, not a production
+bootstrap contract. `./dev start`, tests, and the existing hardened profile keep
+the normal schema-only migration path.
 
 ## 6. Supabase PostgreSQL Connection Modes
 

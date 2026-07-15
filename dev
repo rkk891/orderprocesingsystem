@@ -6,7 +6,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="$ROOT_DIR/backend/ordersystem"
-COMMAND="${1:-start}"
+COMMAND="${1:-demo}"
 SUPABASE_STARTED_BY_LAUNCHER=false
 READINESS_PID=""
 APP_PID=""
@@ -242,7 +242,9 @@ show_status() {
 show_help() {
   cat <<'EOF'
 Usage:
-  ./dev          Start Docker/Supabase as needed and run the application
+  ./dev          Start the recruiter demo with fixtures and scheduling disabled
+  ./dev start    Start without loading/resetting fixtures; use the normal scheduler
+  ./dev demo     Explicit alias for the default recruiter demo
   ./dev status   Show Docker, Supabase, and application readiness
   ./dev stop     Stop the repository-local Supabase project
   ./dev help     Show this help
@@ -256,6 +258,11 @@ EOF
 
 case "$COMMAND" in
   start)
+    start_application
+    ;;
+  demo)
+    export SPRING_PROFILES_ACTIVE=demo
+    export ORDERS_SCHEDULER_ENABLED=false
     start_application
     ;;
   status)

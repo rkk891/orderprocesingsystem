@@ -54,6 +54,11 @@ than shared mutable database state.
   after a PostgreSQL child constraint failure, verified from a fresh transaction.
 - `order/api/OrderControllerMockMvcTest.java`: `@WebMvcTest` request/response,
   mapping, strict Jackson behavior, query semantics, tracing, and global errors.
+- `config/OpenApiDocumentationMockMvcTest.java`: parses the checked-in OpenAPI
+  contract, proves exact paths/methods/statuses and custom body/query/error rules,
+  and verifies Swagger UI loads that artifact while runtime inference stays off.
+- `config/OpenApiProductionExposureMockMvcTest.java`: proves the production
+  profile does not serve the conditional OpenAPI contract route.
 - `order/persistence/OrderRepositoryIT.java`: mappings, constraints, ordering,
   conditional mutations, and Flyway on an empty PostgreSQL container.
 - `order/application/OrderProcessorTest.java`: processor delegation, one
@@ -71,6 +76,9 @@ than shared mutable database state.
   never waits five real minutes.
 - `OrderProcessingApplicationIT.java`: clean Spring context, Flyway migration,
   and JPA validation against Testcontainers PostgreSQL.
+- `DemoDataIT.java`: activates `test,demo` against Testcontainers PostgreSQL and
+  proves the opt-in Flyway callback inserts every lifecycle state and all six
+  expected items without changing the normal test profile.
 - `DatabaseReadinessIT.java`: readiness is `UP` with PostgreSQL and becomes a
   sanitized `503 DOWN` response when the database stops.
 
@@ -107,11 +115,11 @@ Run from `backend/ordersystem/`:
 ./mvnw clean verify
 ```
 
-The clean command passed 77 architecture/domain/entity/application/scheduler/
-MockMvc tests and 26 Testcontainers PostgreSQL 17.6 tests (103 total) on Java
+The clean command passed 81 architecture/domain/entity/application/scheduler/
+MockMvc tests and 27 Testcontainers PostgreSQL 17.6 tests (108 total) on Java
 21.0.11, with zero failures/errors/skips. It covered empty-schema Flyway, JPA
-validation, repository behavior, processor visibility/idempotence, and the three
-core race classes. Configured merge thresholds are at least
+validation, demo fixture reset/isolation, repository behavior, processor
+visibility/idempotence, and the three core race classes. Configured merge thresholds are at least
 80% line and branch coverage overall and 90% branch coverage for domain and
 application packages, including application subpackages; the scenario matrix
 remains mandatory even when metrics pass; all gates were met. Local Supabase startup/Flyway and the Newman

@@ -98,6 +98,35 @@ With the application running, exercise every V1 route from a second shell:
 npx --yes newman@6.2.1 run postman/order-processing-smoke.postman_collection.json --reporters cli
 ```
 
+For interactive API exploration, open
+`http://127.0.0.1:8080/swagger-ui.html`. Swagger UI reads the checked-in
+`/openapi.yaml` contract, so custom status codes, query parameters, body rules,
+and Problem Details remain explicit instead of relying on controller inference.
+Both the UI and contract route are disabled by the `prod` profile.
+
+## Recruiter Demo
+
+The default assessment launcher starts the service with sample orders:
+
+```bash
+./dev
+```
+
+Then open `http://127.0.0.1:8080/swagger-ui.html` and execute **List orders**.
+The demo profile inserts five fixed orders covering `PENDING`, `PROCESSING`,
+`SHIPPED`, `DELIVERED`, and `CANCELLED`. It also disables the scheduler so those
+states remain stable during the walkthrough. Swagger shows useful request and
+response examples before execution; use the fixed pending ID
+`11111111-1111-4111-8111-111111111111` for the detail, status, or cancel routes.
+
+Demo fixtures are repeatable and isolated to the launcher's `demo` profile;
+restarting `./dev` restores the five fixed demo rows to their documented states.
+Tests and the existing hardened profile never load them. Use `./dev start` when
+showing the real five-minute processor without loading or resetting fixtures, or
+run the Newman collection below for a fresh end-to-end lifecycle proof. Local
+Supabase preserves rows, so orders from an earlier demo remain until the database
+is reset; the next plain `./dev` restores the five fixed demo rows.
+
 ## Verification
 
 From `backend/ordersystem/`, the complete verification command is:
